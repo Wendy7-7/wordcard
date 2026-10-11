@@ -319,6 +319,8 @@ textarea{resize:vertical;min-height:72px;}
 .scope-row{display:flex;align-items:center;gap:10px;margin:0 0 14px;font-size:13px;color:var(--muted);white-space:nowrap;}
 .scope-row select{flex:1;min-width:0;font-family:var(--font);font-size:14px;color:var(--ink);background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r-md);padding:9px 12px;outline:none;}
 .scope-row select:focus{border-color:var(--clay);}
+.scope-row input[type=number]{width:86px;text-align:center;font-family:var(--font);font-size:14px;color:var(--ink);background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r-md);padding:9px 10px;outline:none;}
+.scope-row input[type=number]:focus{border-color:var(--clay);}
 .b-example.masked{background:transparent;border:1.5px dashed var(--line-strong);color:var(--muted);cursor:pointer;font-size:13px;}
 .tagstat{margin-top:22px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-soft);padding:16px 18px;}
 .tagstat-title{font-size:14px;font-weight:600;margin-bottom:6px;}
@@ -378,6 +380,11 @@ textarea{resize:vertical;min-height:72px;}
 
       <div class="mini-toggle-row">
         <label class="mini-toggle"><input type="checkbox" id="hideExToggle"><span>自测模式：翻面后先遮住例句</span></label>
+      </div>
+      <div class="scope-row">
+        <span>每天新词上限</span>
+        <input type="number" id="newLimitInput" min="0" max="999" step="1" inputmode="numeric">
+        <span>个，0 为不限</span>
       </div>
       <div class="scope-row" id="scopeRow" style="display:none;">
         <span>复习范围</span>
@@ -634,6 +641,7 @@ textarea{resize:vertical;min-height:72px;}
     if(!state.settings) state.settings = {};
     if(typeof state.settings.hideExample !== 'boolean') state.settings.hideExample = false;
     if(!state.settings.scope) state.settings.scope = 'all';
+    if(typeof state.settings.dailyNewLimit !== 'number') state.settings.dailyNewLimit = 20;
   }
   function getToken(){ return localStorage.getItem(TOKEN_KEY) || ''; }
   function setToken(t){
@@ -794,10 +802,35 @@ textarea{resize:vertical;min-height:72px;}
         + '</div>';
     }).join('');
   }
+  function todayKey(){
+    var d = new Date();
+    function p(n){ return (n < 10 ? '0' : '') + n; }
+    return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate());
+  }
+  function ensureNewDay(){
+    var k = todayKey();
+    if(!state.newCount || state.newCount.day !== k){ state.newCount = { day: k, n: 0 }; }
+  }
   function startSession(){
     var pred = scopePred();
-    session = activeCards().filter(function(c){ return c.due <= now() && pred(c); });
-    session.sort(function(a,b){ return a.due - b.due; });
+    ensureNewDay();
+    var limit = parseInt(state.settings.dailyNewLimit, 10);
+    if(isNaN(limit)) limit = 0;
+    var due = activeCards().filter(function(c){ return c.due <= now() && pred(c); });
+    due.sort(function(a,b){ return a.due - b.due; });
+    if(limit > 0){
+      var remaining = Math.max(0, limit - (state.newCount ? state.newCount.n : 0));
+      var reviews = [], news = [];
+      due.forEach(function(c){ if(c.reps){ reviews.push(c); } else { news.push(c); } });
+      session = reviews.concat(news.slice(0, remaining));
+      session.sort(function(a,b){
+        var an = (a.reps||0) > 0 ? 1 : 0, bn = (b.reps||0) > 0 ? 1 : 0;
+        if(an !== bn) return bn - an;
+        return a.due - b.due;
+      });
+    } else {
+      session = due;
+    }
     total = session.length; curIdx = 0;
     var wrap = $('#sessionWrap'), empty = $('#reviewEmpty'), finish = $('#reviewFinish');
     if(total === 0){
@@ -859,6 +892,8 @@ textarea{resize:vertical;min-height:72px;}
     var c = session[curIdx];
     if(!c) return;
     busy = true;
+    ensureNewDay();
+    if(!c.reps && state.settings.dailyNewLimit > 0){ state.newCount.n = (state.newCount.n || 0) + 1; }
     applyRating(c, r);
     save(); schedulePush();
     var scene = $('#cardScene');
@@ -1415,6 +1450,13 @@ textarea{resize:vertical;min-height:72px;}
       state.settings.hideExample = this.checked;
       save();
     });
+    $('#newLimitInput').addEventListener('change', function(){
+      var v = parseInt(this.value, 10);
+      if(isNaN(v) || v < 0) v = 0;
+      state.settings.dailyNewLimit = v;
+      this.value = v;
+      save(); startSession();
+    });
     $('#bExample').addEventListener('click', function(){
       if(!this.classList.contains('masked')) return;
       this.textContent = this.dataset.real || '';
@@ -1472,6 +1514,7 @@ textarea{resize:vertical;min-height:72px;}
   initDate();
   renderAll();
   if($('#hideExToggle')) $('#hideExToggle').checked = !!state.settings.hideExample;
+  if($('#newLimitInput')) $('#newLimitInput').value = state.settings.dailyNewLimit;
   startSession();
   showLock();
 })();
