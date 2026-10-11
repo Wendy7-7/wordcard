@@ -934,9 +934,13 @@ textarea{resize:vertical;min-height:72px;}
     if(!s) return false;
     return /^[\/\[].*[\/\]]$/.test(s) || /[ˈˌæəɪʊɔɛɒθðʃʒŋɜɑʌ]/.test(s);
   }
-  function parseBatchLine(line){
+  function parseBatchLine(line, map){
     line = String(line == null ? '' : line).replace(/\r$/, '');
     if(!line.trim()) return null;
+    if(map){
+      var cells = splitCells(line);
+      return cells ? cellsToRecord(cells, map) : null;
+    }
     if(/^(word\b|单词)/i.test(line.trim())) return 'header';
     if(line.indexOf('\t') >= 0) return cellsToRecord(line.split('\t'));
     var commaCnt = (line.match(/[,，]/g) || []).length;
@@ -961,7 +965,46 @@ textarea{resize:vertical;min-height:72px;}
     cells.push(cur);
     return cells;
   }
-  function cellsToRecord(cols){
+  var FIELD_ALIAS = {
+    word: /^(word|单词|词汇|词条)$/i,
+    phonetic: /^(ipa|phonetic|pronunciation|音标|发音|注音)$/i,
+    meaning: /^(chinese|meaning|definition|中文|意思|释义|词义|含义|翻译)$/i,
+    example: /^(example|sentence|例句|例文|示例)$/i,
+    tags: /^(tags?|标签|分组|类别|单元|unit|lesson|topic|chapter)$/i,
+    pos: /^(pos|part\s*of\s*speech|词性)$/i
+  };
+  function detectHeader(cells){
+    if(!cells || cells.length < 2) return null;
+    var map = { word:-1, phonetic:-1, meaning:-1, example:-1, tags:-1, pos:-1 };
+    var found = 0;
+    cells.forEach(function(c, i){
+      var v = String(c == null ? '' : c).trim();
+      if(!v) return;
+      for(var k in FIELD_ALIAS){
+        if(map[k] === -1 && FIELD_ALIAS[k].test(v)){ map[k] = i; found++; break; }
+      }
+    });
+    if(map.word >= 0 && map.meaning >= 0) return map;
+    return null;
+  }
+  function splitCells(line){
+    line = String(line == null ? '' : line).replace(/\r$/, '');
+    if(!line.trim()) return null;
+    if(line.indexOf('\t') >= 0) return line.split('\t');
+    if(line.indexOf('"') >= 0) return parseCsvLine(line);
+    if((line.match(/[,，]/g) || []).length >= 1) return parseCsvLine(line);
+    return null;
+  }
+  function cellsToRecord(cols, map){
+    if(map){
+      var pick = function(k){ var i = map[k]; return (i >= 0 && cols[i] != null) ? String(cols[i]).trim() : ''; };
+      var w = pick('word');
+      if(!w) return null;
+      var mean = pick('meaning');
+      var pos = pick('pos');
+      if(pos && mean && pos.toLowerCase() !== mean.toLowerCase()) mean = pos + ' ' + mean;
+      return { word: w, phonetic: pick('phonetic'), meaning: mean, example: pick('example'), tags: parseTags(pick('tags')) };
+    }
     var c0 = String(cols[0] == null ? '' : cols[0]).trim();
     if(!c0) return null;
     var r = { word: c0, phonetic:'', meaning:'', example:'', tags:[] };
@@ -976,11 +1019,19 @@ textarea{resize:vertical;min-height:72px;}
   }
   function applyBatchText(text){
     var lines = String(text == null ? '' : text).split(/\r?\n/);
+    var headerMap = null, headerLineIdx = -1;
+    for(var i=0;i<lines.length && i<10;i++){
+      var hc = splitCells(lines[i]);
+      if(!hc) continue;
+      var hm = detectHeader(hc);
+      if(hm){ headerMap = hm; headerLineIdx = i; break; }
+    }
     var added = 0, updated = 0, skipped = 0;
     var byWord = {};
     state.cards.forEach(function(c){ if(!c._d) byWord[norm(c.word).toLowerCase()] = c; });
-    lines.forEach(function(line){
-      var r = parseBatchLine(line);
+    lines.forEach(function(line, li){
+      if(headerMap && li === headerLineIdx) return;
+      var r = parseBatchLine(line, headerMap);
       if(!r || r === 'header') return;
       var key = r.word.toLowerCase();
       var ex = byWord[key];
@@ -1051,9 +1102,21 @@ textarea{resize:vertical;min-height:72px;}
   }
   function importFile(file){
     var name = String(file.name || '').toLowerCase();
-    if(/\.(xlsx|xls)$/.test(name)){ importExcel(file); return; }
     if(/\.json$/.test(name)){ importBackup(file); return; }
-    importTextFile(file);
+    if(/\.(xlsx|xls)$/.test(name)){ importExcel(file); return; }
+    // 有些文件后缀是 .csv/.txt，但实际是 Excel（二进制）。读前几个字节嗅探真实格式。
+    try{
+      file.slice(0, 4).arrayBuffer().then(function(buf){
+        var b = new Uint8Array(buf);
+        // xlsx 是 ZIP 包，以 "PK" 开头；旧 .xls 是 OLE，以 D0 CF 11 E0 开头
+        if((b.length >= 2 && b[0] === 0x50 && b[1] === 0x4B) ||
+           (b.length >= 4 && b[0] === 0xD0 && b[1] === 0xCF && b[2] === 0x11 && b[3] === 0xE0)){
+          importExcel(file);
+        } else {
+          importTextFile(file);
+        }
+      }).catch(function(){ importTextFile(file); });
+    }catch(e){ importTextFile(file); }
   }
 
   /* ============ 单词本 ============ */
