@@ -230,6 +230,8 @@ textarea{resize:vertical;min-height:72px;}
 
 .batch-box{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:14px;}
 .batch-tip{font-size:12.5px;color:var(--muted);margin:0 0 10px;line-height:1.6;}
+.file-line{margin-top:10px;}
+.file-name{font-size:12.5px;color:var(--muted);margin-top:6px;word-break:break-all;}
 .batch-box textarea{min-height:120px;margin-bottom:12px;}
 
 /* ============ 单词本 ============ */
@@ -441,9 +443,14 @@ textarea{resize:vertical;min-height:72px;}
       <div class="recent">
         <div class="recent-title">批量导入（一次加很多词）</div>
         <div class="batch-box">
-          <p class="batch-tip">两种贴法都行：<br>① 简单版——每行「单词 意思」（空格、逗号或 Tab 隔开）；<br>② 完整版——从 Excel 直接复制 5 列：单词、音标、意思、例句、标签（顺序固定，空的列留着即可，带表头会自动跳过）。<br>已经在单词本里的词不会重复添加，只会合并新标签、补全空字段，学习进度不受影响。</p>
+          <p class="batch-tip">两种方式都行：<br>① 直接粘贴——简单版每行「单词 意思」，完整版从 Excel 复制 5 列（单词、音标、意思、例句、标签）；<br>② 上传文件——支持 txt、csv、tsv、json、xlsx、xls，选择文件后自动识别导入。<br>已经在单词本里的词不会重复添加，只会合并新标签、补全空字段，学习进度不受影响。</p>
           <textarea id="batchText" placeholder="简单版：&#10;luminous 发光的，明亮的&#10;&#10;完整版（Excel 直接复制 5 列）：&#10;luminous	/ˈluːmɪnəs/	发光的，明亮的	The moon was luminous.	G4,CW1评分词"></textarea>
-          <button class="btn btn-ghost btn-block" id="batchBtn">批量导入</button>
+          <button class="btn btn-ghost btn-block" id="batchBtn">从文本框导入</button>
+          <div class="file-line">
+            <button class="btn btn-ghost btn-block" id="batchFileBtn">选择文件导入（txt / csv / xlsx…）</button>
+            <input type="file" id="batchFileInput" accept=".txt,.csv,.tsv,.json,.xlsx,.xls" style="display:none;">
+          </div>
+          <div class="file-name" id="batchFileName"></div>
         </div>
       </div>
 
@@ -887,30 +894,47 @@ textarea{resize:vertical;min-height:72px;}
     return /^[\/\[].*[\/\]]$/.test(s) || /[ˈˌæəɪʊɔɛɒθðʃʒŋɜɑʌ]/.test(s);
   }
   function parseBatchLine(line){
-    line = String(line || '').replace(/\r$/, '');
+    line = String(line == null ? '' : line).replace(/\r$/, '');
     if(!line.trim()) return null;
     if(/^(word\b|单词)/i.test(line.trim())) return 'header';
-    if(line.indexOf('\t') >= 0){
-      var cols = line.split('\t').map(function(x){ return x.trim(); });
-      var r = { word: cols[0] || '', phonetic:'', meaning:'', example:'', tags:[] };
-      if(cols.length <= 2){
-        if(looksPhonetic(cols[1])) r.phonetic = cols[1]; else r.meaning = cols[1] || '';
-      } else if(!looksPhonetic(cols[1]) && /[\u4e00-\u9fa5]/.test(cols[1])){
-        // 无音标列：单词、意思、例句、标签
-        r.meaning = cols[1]; r.example = cols[2] || ''; r.tags = parseTags(cols[3] || '');
-      } else {
-        // 完整列：单词、音标、意思、例句、标签
-        r.phonetic = cols[1] || ''; r.meaning = cols[2] || ''; r.example = cols[3] || ''; r.tags = parseTags(cols[4] || '');
-      }
-      if(!r.word) return null;
-      return r;
-    }
+    if(line.indexOf('\t') >= 0) return cellsToRecord(line.split('\t'));
+    var commaCnt = (line.match(/[,，]/g) || []).length;
+    if(line.indexOf('"') >= 0 || commaCnt >= 2) return cellsToRecord(parseCsvLine(line));
     var p = splitFirstLine(line.trim());
     if(!p[0]) return null;
     return { word: p[0], phonetic:'', meaning: p[1], example:'', tags:[] };
   }
-  function batchImport(){
-    var lines = $('#batchText').value.split(/\r?\n/);
+  function parseCsvLine(line){
+    var cells = [], cur = '', inQ = false;
+    for(var i=0;i<line.length;i++){
+      var ch = line[i];
+      if(inQ){
+        if(ch === '"'){ if(line[i+1] === '"'){ cur += '"'; i++; } else inQ = false; }
+        else cur += ch;
+      } else {
+        if(ch === '"') inQ = true;
+        else if(ch === ',' || ch === '，'){ cells.push(cur); cur = ''; }
+        else cur += ch;
+      }
+    }
+    cells.push(cur);
+    return cells;
+  }
+  function cellsToRecord(cols){
+    var c0 = String(cols[0] == null ? '' : cols[0]).trim();
+    if(!c0) return null;
+    var r = { word: c0, phonetic:'', meaning:'', example:'', tags:[] };
+    if(cols.length <= 2){
+      if(looksPhonetic(cols[1])) r.phonetic = String(cols[1] == null ? '' : cols[1]).trim(); else r.meaning = String(cols[1] == null ? '' : cols[1]).trim();
+    } else if(!looksPhonetic(cols[1]) && /[\u4e00-\u9fa5]/.test(String(cols[1] || ''))){
+      r.meaning = String(cols[1] == null ? '' : cols[1]).trim(); r.example = String(cols[2] == null ? '' : cols[2]).trim(); r.tags = parseTags(cols[3] || '');
+    } else {
+      r.phonetic = String(cols[1] == null ? '' : cols[1]).trim(); r.meaning = String(cols[2] == null ? '' : cols[2]).trim(); r.example = String(cols[3] == null ? '' : cols[3]).trim(); r.tags = parseTags(cols[4] || '');
+    }
+    return r;
+  }
+  function applyBatchText(text){
+    var lines = String(text == null ? '' : text).split(/\r?\n/);
     var added = 0, updated = 0, skipped = 0;
     var byWord = {};
     state.cards.forEach(function(c){ if(!c._d) byWord[norm(c.word).toLowerCase()] = c; });
@@ -934,14 +958,61 @@ textarea{resize:vertical;min-height:72px;}
       byWord[key] = c;
       added++;
     });
-    if(added === 0 && updated === 0 && skipped === 0){ toast('没识别到内容，请检查格式'); return; }
-    save(); schedulePush();
+    if(added === 0 && updated === 0 && skipped === 0) return null;
+    save(); schedulePush(); renderAll();
+    return { added: added, updated: updated, skipped: skipped };
+  }
+  function batchResultMsg(res){
+    var msg = '新增 ' + res.added + ' 个';
+    if(res.updated > 0) msg += '，更新 ' + res.updated + ' 个（合并标签/补全字段）';
+    if(res.skipped > 0) msg += '，跳过 ' + res.skipped + ' 个（无变化）';
+    return msg;
+  }
+  function batchImport(){
+    var res = applyBatchText($('#batchText').value);
+    if(!res){ toast('没识别到内容，请检查格式'); return; }
     $('#batchText').value = '';
-    renderAll();
-    var msg = '新增 ' + added + ' 个';
-    if(updated > 0) msg += '，更新 ' + updated + ' 个（合并标签/补全字段）';
-    if(skipped > 0) msg += '，跳过 ' + skipped + ' 个（无变化）';
-    toast(msg);
+    toast(batchResultMsg(res));
+  }
+  function loadXLSX(cb){
+    if(window.XLSX){ cb(); return; }
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload = function(){ cb(); };
+    s.onerror = function(){ toast('加载 Excel 解析组件失败，请联网后重试'); };
+    document.head.appendChild(s);
+  }
+  function importExcel(file){
+    loadXLSX(function(){
+      var reader = new FileReader();
+      reader.onload = function(ev){
+        try{
+          var wb = window.XLSX.read(new Uint8Array(ev.target.result), { type:'array' });
+          var ws = wb.Sheets[wb.SheetNames[0]];
+          var rows = window.XLSX.utils.sheet_to_json(ws, { header:1, raw:false, defval:'' });
+          var text = rows.map(function(r){ return (r || []).map(function(x){ return String(x == null ? '' : x).replace(/[\t\r\n]+/g, ' '); }).join('\t'); }).join('\n');
+          var res = applyBatchText(text);
+          if(!res){ toast('这个表格里没识别到单词'); return; }
+          toast(batchResultMsg(res));
+        }catch(e){ toast('解析 Excel 失败，请确认是标准 xlsx/xls 文件'); }
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  }
+  function importTextFile(file){
+    var reader = new FileReader();
+    reader.onload = function(){
+      var res = applyBatchText(reader.result);
+      if(!res){ toast('这个文件里没识别到单词'); return; }
+      toast(batchResultMsg(res));
+    };
+    reader.readAsText(file, 'utf-8');
+  }
+  function importFile(file){
+    var name = String(file.name || '').toLowerCase();
+    if(/\.(xlsx|xls)$/.test(name)){ importExcel(file); return; }
+    if(/\.json$/.test(name)){ importBackup(file); return; }
+    importTextFile(file);
   }
 
   /* ============ 单词本 ============ */
@@ -1129,6 +1200,11 @@ textarea{resize:vertical;min-height:72px;}
     $('#addBtn').addEventListener('click', addWord);
     $('#addWord').addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); addWord(); } });
     $('#batchBtn').addEventListener('click', batchImport);
+    $('#batchFileBtn').addEventListener('click', function(){ $('#batchFileInput').click(); });
+    $('#batchFileInput').addEventListener('change', function(){
+      if(this.files && this.files[0]){ $('#batchFileName').textContent = '已选择：' + this.files[0].name; importFile(this.files[0]); }
+      this.value = '';
+    });
 
     $('#recentChips').addEventListener('click', function(e){
       var chip = e.target.closest('[data-recent]');
