@@ -340,6 +340,23 @@ textarea{resize:vertical;min-height:72px;}
   opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease;
 }
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ============ 密码锁 ============ */
+.lock{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:var(--bg-deep);max-width:560px;margin:0 auto;padding:24px;}
+.lock-card{width:100%;max-width:340px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:28px 24px;text-align:center;}
+.lock-icon{color:var(--clay);margin-bottom:10px;}
+.lock-icon svg{width:36px;height:36px;}
+.lock-title{font-size:19px;font-weight:600;margin:0 0 8px;}
+.lock-desc{font-size:13px;color:var(--ink-soft);margin:0 0 18px;line-height:1.6;}
+.lock-card input{margin-bottom:10px;}
+.lock-error{font-size:13px;color:var(--rose-deep);min-height:18px;margin:8px 0 0;}
+.lock-note{font-size:12px;color:var(--muted);margin:12px 0 0;line-height:1.6;}
+
+/* ============ 拖拽导入 ============ */
+.drop-zone{margin-top:10px;border:2px dashed var(--line-strong);border-radius:var(--r-md);padding:16px 12px;text-align:center;font-size:13px;color:var(--muted);transition:border-color .15s ease,background .15s ease,color .15s ease;}
+.drop-zone.drag{border-color:var(--clay);background:var(--clay-soft);color:var(--clay-deep);}
+.drop-zone svg{width:24px;height:24px;margin-bottom:4px;color:var(--clay);vertical-align:middle;}
+.drop-zone span{font-size:11.5px;opacity:.8;}
 </style>
 </head>
 <body>
@@ -451,6 +468,10 @@ textarea{resize:vertical;min-height:72px;}
             <input type="file" id="batchFileInput" accept=".txt,.csv,.tsv,.json,.xlsx,.xls" style="display:none;">
           </div>
           <div class="file-name" id="batchFileName"></div>
+          <div class="drop-zone" id="dropZone">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg><br>
+            把文件拖到这里，松手就能导入<br><span>支持 txt / csv / tsv / json / xlsx / xls</span>
+          </div>
         </div>
       </div>
 
@@ -554,11 +575,31 @@ textarea{resize:vertical;min-height:72px;}
 
 <div class="toast" id="toast"></div>
 
+<div class="lock" id="lockScreen" style="display:none;">
+  <div class="lock-card">
+    <div class="lock-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg></div>
+    <div class="lock-title" id="lockTitle">输入密码解锁</div>
+    <p class="lock-desc" id="lockDesc">你的单词是私有加密的，输入密码才能打开。</p>
+    <div id="lockSetWrap">
+      <input type="password" id="lockPw1" placeholder="设置一个密码" autocomplete="off">
+      <input type="password" id="lockPw2" placeholder="再输一遍确认" autocomplete="off">
+      <button class="btn btn-primary btn-block" id="lockSetBtn">设置密码</button>
+    </div>
+    <div id="lockEnterWrap" style="display:none;">
+      <input type="password" id="lockPwEnter" placeholder="输入密码" autocomplete="off">
+      <button class="btn btn-primary btn-block" id="lockEnterBtn">进入单词卡</button>
+    </div>
+    <p class="lock-error" id="lockError"></p>
+    <p class="lock-note">密码只存在这台设备里，别人打不开。若忘记密码，清空本网站的浏览器数据后可重新设置；你的词还在云端，重新连接钥匙就能找回。</p>
+  </div>
+</div>
+
 <script>
 (function(){
   'use strict';
   var LS_KEY = 'myWordCards.v1';
   var TOKEN_KEY = 'myWordCards.token';
+  var PW_KEY = 'myWordCards.pwhash';
   var GIST_ID = 'b9a1dee96584c26df84cb22041cf294a';
   var GIST_API = 'https://api.github.com/gists/' + GIST_ID;
   var DAY = 86400000;
@@ -1175,6 +1216,62 @@ textarea{resize:vertical;min-height:72px;}
     toastTimer = setTimeout(function(){ el.classList.remove('show'); }, 2200);
   }
 
+  /* ============ 密码锁 ============ */
+  function sha256hex(str){
+    return crypto.subtle.digest('SHA-256', new TextEncoder().encode(str)).then(function(buf){
+      var a = Array.prototype.slice.call(new Uint8Array(buf));
+      return a.map(function(b){ return ('0' + b.toString(16)).slice(-2); }).join('');
+    });
+  }
+  function hasPassword(){ return !!localStorage.getItem(PW_KEY); }
+  function lockError(msg){ $('#lockError').textContent = msg; }
+  function showLock(){
+    $('#lockScreen').style.display = 'flex';
+    $('#lockError').textContent = '';
+    if(hasPassword()){
+      $('#lockTitle').textContent = '输入密码解锁';
+      $('#lockDesc').textContent = '你的单词是私有加密的，输入密码才能打开。';
+      $('#lockSetWrap').style.display = 'none';
+      $('#lockEnterWrap').style.display = '';
+      $('#lockPwEnter').focus();
+    } else {
+      $('#lockTitle').textContent = '设置密码';
+      $('#lockDesc').textContent = '首次使用，设一个只有你知道的密码，以后每次打开都要输入。';
+      $('#lockSetWrap').style.display = '';
+      $('#lockEnterWrap').style.display = 'none';
+      $('#lockPw1').focus();
+    }
+  }
+  function hideLock(){ $('#lockScreen').style.display = 'none'; }
+  function setPassword(){
+    var p1 = $('#lockPw1').value, p2 = $('#lockPw2').value;
+    if(!p1){ lockError('请先输入密码'); return; }
+    if(p1.length < 4){ lockError('密码至少 4 位，长一点更安全'); return; }
+    if(p1 !== p2){ lockError('两次输入不一致，再核对一下'); return; }
+    sha256hex(p1).then(function(h){
+      localStorage.setItem(PW_KEY, h);
+      $('#lockPw1').value = ''; $('#lockPw2').value = ''; $('#lockError').textContent = '';
+      hideLock();
+      toast('密码已设置');
+      initSync();
+    });
+  }
+  function enterPassword(){
+    var p = $('#lockPwEnter').value;
+    if(!p){ lockError('请输入密码'); return; }
+    sha256hex(p).then(function(h){
+      if(h === localStorage.getItem(PW_KEY)){
+        $('#lockPwEnter').value = ''; $('#lockError').textContent = '';
+        hideLock();
+        toast('欢迎回来');
+        initSync();
+      } else {
+        lockError('密码不对，再试一次');
+        $('#lockPwEnter').value = ''; $('#lockPwEnter').focus();
+      }
+    });
+  }
+
   function renderAll(){
     refreshStats(); renderList(); renderTagFilter(); renderRecent();
   }
@@ -1205,6 +1302,26 @@ textarea{resize:vertical;min-height:72px;}
       if(this.files && this.files[0]){ $('#batchFileName').textContent = '已选择：' + this.files[0].name; importFile(this.files[0]); }
       this.value = '';
     });
+
+    // 拖拽导入
+    var zone = $('#dropZone');
+    ['dragenter','dragover'].forEach(function(t){
+      zone.addEventListener(t, function(e){ e.preventDefault(); e.stopPropagation(); zone.classList.add('drag'); });
+    });
+    zone.addEventListener('dragleave', function(e){ e.preventDefault(); e.stopPropagation(); zone.classList.remove('drag'); });
+    zone.addEventListener('drop', function(e){
+      e.preventDefault(); e.stopPropagation(); zone.classList.remove('drag');
+      var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if(f){ $('#batchFileName').textContent = '已选择：' + f.name; importFile(f); }
+    });
+    document.addEventListener('dragover', function(e){ e.preventDefault(); });
+    document.addEventListener('drop', function(e){ e.preventDefault(); });
+
+    // 密码锁
+    $('#lockSetBtn').addEventListener('click', setPassword);
+    $('#lockEnterBtn').addEventListener('click', enterPassword);
+    $('#lockPwEnter').addEventListener('keydown', function(e){ if(e.key === 'Enter'){ enterPassword(); } });
+    $('#lockPw2').addEventListener('keydown', function(e){ if(e.key === 'Enter'){ setPassword(); } });
 
     $('#recentChips').addEventListener('click', function(e){
       var chip = e.target.closest('[data-recent]');
@@ -1293,7 +1410,7 @@ textarea{resize:vertical;min-height:72px;}
   renderAll();
   if($('#hideExToggle')) $('#hideExToggle').checked = !!state.settings.hideExample;
   startSession();
-  initSync();
+  showLock();
 })();
 </script>
 </body>
