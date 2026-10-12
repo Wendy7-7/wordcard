@@ -1400,7 +1400,7 @@ textarea{resize:vertical;min-height:72px;}
     return first || '无题文章';
   }
   function renderReadList(){
-    var reads = (state.reads || []).slice().sort(function(a,b){ return (b.updatedAt||0)-(a.updatedAt||0); });
+    var reads = (state.reads || []).filter(function(r){ return !r._d; }).slice().sort(function(a,b){ return (b.updatedAt||0)-(a.updatedAt||0); });
     var wrap = $('#readList'), empty = $('#readEmpty');
     renderPatterns();
     if(!reads.length){ wrap.innerHTML = ''; empty.style.display = ''; return; }
@@ -1416,7 +1416,7 @@ textarea{resize:vertical;min-height:72px;}
     }).join('');
   }
   function renderPatterns(){
-    var list = (state.patterns || []).slice().sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); });
+    var list = (state.patterns || []).filter(function(p){ return !p._d; }).slice().sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); });
     $('#patternSec').style.display = list.length ? '' : 'none';
     var cnt = $('#patternCount');
     if(cnt) cnt.textContent = list.length ? '（' + list.length + ' 条）' : '';
@@ -1448,7 +1448,7 @@ textarea{resize:vertical;min-height:72px;}
     });
   }
   function openRead(id){
-    var r = (state.reads || []).filter(function(x){ return x.id === id; })[0];
+    var r = (state.reads || []).filter(function(x){ return x.id === id && !x._d; })[0];
     if(!r) return;
     readingId = id;
     $('#readPageTitle').textContent = r.title || '无题';
@@ -1958,7 +1958,7 @@ textarea{resize:vertical;min-height:72px;}
 
   /* ============ 数据页 ============ */
   function exportBackup(){
-    var data = { exportedAt: new Date().toISOString(), cards: activeCards(), settings: state.settings, reads: state.reads || [], patterns: state.patterns || [] };
+    var data = { exportedAt: new Date().toISOString(), cards: activeCards(), settings: state.settings, reads: (state.reads || []).filter(function(r){ return !r._d; }), patterns: (state.patterns || []).filter(function(p){ return !p._d; }) };
     var blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -2305,7 +2305,7 @@ textarea{resize:vertical;min-height:72px;}
         var id = del.getAttribute('data-delread');
         var r = (state.reads || []).filter(function(x){ return x.id === id; })[0];
         if(r && confirm('删除文章「' + (r.title || '无题') + '」？此操作无法撤销。')){
-          state.reads = state.reads.filter(function(x){ return x.id !== id; });
+          r._d = true; r.updated = now(); r.updatedAt = now();
           save(); schedulePush(); renderReadList();
           toast('已删除');
         }
@@ -2318,9 +2318,12 @@ textarea{resize:vertical;min-height:72px;}
       var del = e.target.closest('[data-delpat]');
       if(!del) return;
       var id = del.getAttribute('data-delpat');
-      state.patterns = state.patterns.filter(function(x){ return x.id !== id; });
-      save(); schedulePush(); renderReadList();
-      toast('已删除');
+      var p = (state.patterns || []).filter(function(x){ return x.id === id; })[0];
+      if(p){
+        p._d = true; p.updated = now();
+        save(); schedulePush(); renderReadList();
+        toast('已删除');
+      }
     });
 
     // AI 帮我读
