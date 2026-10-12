@@ -1568,20 +1568,19 @@ textarea{resize:vertical;min-height:72px;}
   startSession();
   token = getToken();
   if(!token && EMBED_TOKEN){ token = EMBED_TOKEN.split('').reverse().join(''); setToken(token); }
+  showLock();
   if(token){
     setSyncState('wait', '正在同步…');
+    setLockSync('wait', '正在同步词汇…');
     doSync().then(function(){
       setSyncState('ok', '已连接，已自动同步');
       setLockSync('ok', '词汇已同步，输入密码即可进入');
-      showLock();
     }).catch(function(){
       setSyncState('bad', '同步失败，可能没联网');
       setLockSync('fail', '词汇同步失败，点此重试');
-      showLock();
     });
   } else {
     setLockSync('fail', '还没有连接云端，词汇可能不同步');
-    showLock();
   }
 })();
 </script>
