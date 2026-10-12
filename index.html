@@ -843,7 +843,8 @@ textarea{resize:vertical;min-height:72px;}
 
   /* ============ 存储 ============ */
   function save(){
-    try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){}
+    try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+    catch(e){ toast('保存失败：设备存储空间可能满了，请先到数据页导出备份再清理旧文章'); }
   }
   function load(){
     try{
@@ -992,48 +993,63 @@ textarea{resize:vertical;min-height:72px;}
     setTimeout(function(){ try{ window.speechSynthesis.speak(u); }catch(e){} }, 60); // cancel 后立刻 speak 在部分浏览器会失败
   }
   /* 真人发音（免费词典 API，有缓存；拿不到就回退系统发音） */
-  var audioUrlCache = {};
+  var audioUrlCache = {}, audioInflight = 0;
   function fetchAudioUrl(word, cb){
     var w = String(word || '').trim().toLowerCase();
     if(!w || !/^[a-z][a-z'\u2019-]*$/.test(w)){ cb(null); return; }
-    if(audioUrlCache.hasOwnProperty(w)){ cb(audioUrlCache[w]); return; }
+    var hit = audioUrlCache[w];
+    if(hit && hit.at && Date.now() - hit.at < 300000){ cb(hit.url); return; } // 5 分钟内有效（临时断网的负缓存会过期重试）
+    if(hit && !hit.at){ cb(hit.url); return; } // 成功查到的长期有效
+    if(audioInflight >= 3){ cb(null); return; } // 同时最多查 3 个，避免请求风暴
+    audioInflight++;
     var done = false;
-    var timer = setTimeout(function(){ if(!done){ done = true; audioUrlCache[w] = null; cb(null); } }, 1500);
+    var timer = setTimeout(function(){ if(!done){ done = true; audioInflight--; audioUrlCache[w] = { url: null, at: Date.now() }; cb(null); } }, 1500);
     fetch('https://api.dictionaryapi.dev/api/v2/entries/en/' + encodeURIComponent(w))
       .then(function(r){ return r.ok ? r.json() : null; })
       .then(function(d){
         if(done) return;
-        done = true; clearTimeout(timer);
+        done = true; clearTimeout(timer); audioInflight--;
         var url = null;
         (d || []).forEach(function(e){
           (e.phonetics || []).forEach(function(p){ if(p.audio && !url) url = p.audio; });
         });
         if(url && url.indexOf('//') === 0) url = location.protocol + url;
-        audioUrlCache[w] = url;
+        if(Object.keys(audioUrlCache).length > 500) audioUrlCache = {}; // 缓存上限，防止无限增长
+        audioUrlCache[w] = url ? { url: url } : { url: null, at: Date.now() };
         cb(url);
       })
       .catch(function(){
         if(done) return;
-        done = true; clearTimeout(timer);
-        audioUrlCache[w] = null;
+        done = true; clearTimeout(timer); audioInflight--;
+        audioUrlCache[w] = { url: null, at: Date.now() };
         cb(null);
       });
   }
   /* 统一入口：优先真人发音，失败/没有就用系统发音 */
+  var curAudio = null, lastSpeakAt = 0;
+  function stopSpeak(){
+    try{ if(window.speechSynthesis) window.speechSynthesis.cancel(); }catch(e){}
+    try{ if(curAudio){ curAudio.onerror = null; curAudio.pause(); curAudio.src = ''; curAudio = null; } }catch(e){}
+  }
   function speak(text, lang){
     if(!text) return;
     var t = String(text).trim();
     if(!t) return;
+    var nowMs = Date.now();
+    if(nowMs - lastSpeakAt < 300) return; // 连点太快的忽略，避免声音重叠
+    lastSpeakAt = nowMs;
+    stopSpeak();
     var isEnWord = !/[\u4e00-\u9fa5]/.test(t) && /^[A-Za-z][A-Za-z'\u2019-]*$/.test(t);
     if(isEnWord){
       fetchAudioUrl(t, function(url){
         if(url){
           try{
             var a = new Audio();
-            a.onerror = function(){ speakTts(t, lang); };
+            a.onerror = function(){ if(curAudio === a) curAudio = null; speakTts(t, lang); };
             a.src = url;
+            curAudio = a;
             var p = a.play();
-            if(p && p.catch) p.catch(function(){ speakTts(t, lang); });
+            if(p && p.catch) p.catch(function(){ if(curAudio === a) curAudio = null; speakTts(t, lang); });
             return;
           }catch(e){ /* 走到下面用系统发音 */ }
         }
@@ -1231,10 +1247,12 @@ textarea{resize:vertical;min-height:72px;}
     if(busy) return;
     var c = session[curIdx];
     if(!c) return;
+    /* 云同步可能刚用新数组替换过 state.cards，按 id 重新取，保证评分不丢 */
+    var live = (state.cards || []).filter(function(x){ return x.id === c.id; })[0] || c;
     busy = true;
     ensureNewDay();
-    if(!c.reps && state.settings.dailyNewLimit > 0){ state.newCount.n = (state.newCount.n || 0) + 1; }
-    applyRating(c, r);
+    if(!live.reps && state.settings.dailyNewLimit > 0){ state.newCount.n = (state.newCount.n || 0) + 1; }
+    applyRating(live, r);
     save(); schedulePush();
     var scene = $('#cardScene');
     scene.classList.add('leaving');
@@ -1577,7 +1595,7 @@ textarea{resize:vertical;min-height:72px;}
     $('#readPage').classList.remove('show');
     if(readingId){
       var r = (state.reads || []).filter(function(x){ return x.id === readingId; })[0];
-      if(r) r.updatedAt = now();
+      if(r){ r.updatedAt = now(); r.updated = now(); }
       save(); schedulePush();
     }
     readingId = null;
@@ -2053,6 +2071,8 @@ textarea{resize:vertical;min-height:72px;}
     if(!c) return;
     var w = norm($('#eWord').value), m = norm($('#eMeaning').value);
     if(!w || !m){ toast('单词和意思不能为空'); return; }
+    var dup = state.cards.some(function(x){ return !x._d && x.id !== c.id && norm(x.word).toLowerCase() === w.toLowerCase(); });
+    if(dup){ toast('「' + w + '」已经在单词本里了'); return; }
     c.word = w; c.phonetic = norm($('#ePhonetic').value); c.meaning = m; c.example = norm($('#eExample').value); c.tags = parseTags($('#eTags').value);
     c.updated = now();
     save(); schedulePush();
@@ -2087,7 +2107,9 @@ textarea{resize:vertical;min-height:72px;}
       try{
         var d = JSON.parse(reader.result);
         var arr = Array.isArray(d) ? d : (d.cards || []);
-        if(!arr.length){ toast('文件里没有单词'); return; }
+        var hasReads = !Array.isArray(d) && Array.isArray(d.reads) && d.reads.length;
+        var hasPatterns = !Array.isArray(d) && Array.isArray(d.patterns) && d.patterns.length;
+        if(!arr.length && !hasReads && !hasPatterns){ toast('文件里没有可恢复的内容'); return; }
         arr.forEach(function(c){
           if(!c.id) c.id = uid();
           c.updated = c.updated || now();
@@ -2116,7 +2138,7 @@ textarea{resize:vertical;min-height:72px;}
     activeCards().forEach(function(c){ c._d = true; c.updated = t; });
     save();
     if(token){ pushCloud(state.cards).catch(function(){}); }
-    refreshStats(); renderList(); renderRecent(); startSession();
+    refreshStats(); renderList(); renderTagFilter(); renderRecent(); startSession();
     toast('已清空');
   }
 
@@ -2127,6 +2149,7 @@ textarea{resize:vertical;min-height:72px;}
       return;
     }
     $('#syncConnect').disabled = true;
+    var oldToken = getToken();
     setToken(t);
     setSyncState('wait', '正在同步…');
     fetchCloud().then(function(cloud){
@@ -2146,8 +2169,10 @@ textarea{resize:vertical;min-height:72px;}
         toast('连接成功，云端数据已同步');
       }
     }).catch(function(){
-      setToken('');
-      setSyncState('bad', '连接失败，请检查钥匙或网络');
+      /* 新钥匙失败时保留原来的有效钥匙，别把能用的也弄丢了 */
+      setToken(oldToken || '');
+      if(!oldToken) setSyncState('bad', '连接失败，请检查钥匙或网络');
+      else setSyncState('bad', '连接失败，仍用之前的钥匙');
       if(fromLock){ lockError('连接失败，请核对钥匙是否粘贴正确、网络是否正常'); }
       else { toast('连接失败，请检查钥匙或网络'); }
     }).finally(function(){ $('#syncConnect').disabled = false; });
@@ -2161,7 +2186,7 @@ textarea{resize:vertical;min-height:72px;}
     setLockSync('wait', '正在同步词汇…');
     doSync().then(function(){
       setSyncState('ok', '已连接，已自动同步');
-      setLockSync('ok', '词汇已同步（' + activeCards().length + ' 个）');
+      setLockSync('ok', '词汇已同步，输入密码即可进入'); // 锁屏时不显示数量，避免泄露信息
       toast('已同步 ' + activeCards().length + ' 个单词');
     }).catch(function(){
       setSyncState('bad', '同步失败，可能没联网');
@@ -2390,7 +2415,7 @@ textarea{resize:vertical;min-height:72px;}
         var r = (state.reads || []).filter(function(x){ return x.id === readingId; })[0];
         if(!r) return;
         r.progress = max > 0 ? Math.min(1, body.scrollTop / max) : 1;
-        r.updatedAt = now();
+        r.updatedAt = now(); r.updated = now();
         save();
       }, 400);
     });
@@ -2471,7 +2496,11 @@ textarea{resize:vertical;min-height:72px;}
     });
 
     document.addEventListener('keydown', function(e){
+      /* 任何全屏浮层打开时都不响应快捷键，避免误操作背后的复习卡 */
       if($('#editPage').classList.contains('show')) return;
+      if($('#aiPage').classList.contains('show')) return;
+      if($('#readPage').classList.contains('show')) return;
+      if($('#pastePage').classList.contains('show')) return;
       if(e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
       if(e.key === ' '){
         e.preventDefault();
