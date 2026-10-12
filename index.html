@@ -362,6 +362,96 @@ textarea{resize:vertical;min-height:72px;}
 .drop-zone.drag{border-color:var(--clay);background:var(--clay-soft);color:var(--clay-deep);}
 .drop-zone svg{width:24px;height:24px;margin-bottom:4px;color:var(--clay);vertical-align:middle;}
 .drop-zone span{font-size:11.5px;opacity:.8;}
+
+/* ============ 阅读器 ============ */
+.read-import{display:flex;flex-direction:column;gap:10px;margin-bottom:20px;}
+.read-list{display:flex;flex-direction:column;gap:10px;}
+.read-item{
+  display:flex;align-items:center;gap:12px;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);
+  padding:14px 16px;box-shadow:var(--shadow-soft);cursor:pointer;
+  transition:transform .12s ease,background .15s ease;
+}
+.read-item:hover{background:var(--surface-2);}
+.read-item:active{transform:scale(.99);}
+.read-item .r-main{flex:1;min-width:0;}
+.read-item .r-title{font-size:15.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.read-item .r-meta{font-size:12px;color:var(--muted);margin-top:3px;}
+.read-item .r-del{
+  flex:none;width:34px;height:34px;border:none;background:none;color:var(--muted);cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;border-radius:50%;
+}
+.read-item .r-del:hover{background:var(--rose-soft);color:var(--rose-deep);}
+.read-item .r-del svg{width:16px;height:16px;}
+
+.read-head-title{flex:1;min-width:0;font-size:15px;font-weight:600;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.read-body{
+  flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:10px 22px calc(48px + env(safe-area-inset-bottom));
+  font-family:var(--font-serif);font-size:18px;line-height:1.95;
+}
+.read-body p{margin:0 0 1.1em;}
+.read-body .rw{cursor:pointer;border-radius:4px;}
+@media (hover:hover) and (pointer:fine){.read-body .rw:hover{background:var(--amber-soft);}}
+.read-body .rw.added{background:var(--sage-soft);color:var(--sage-deep);}
+
+.ai-head-btn{
+  flex:none;display:inline-flex;align-items:center;gap:5px;
+  min-height:38px;padding:0 14px;border-radius:99px;border:none;
+  background:linear-gradient(135deg,#D0775A,#E29A78);color:#FFF9F4;
+  font-family:var(--font);font-size:13.5px;font-weight:600;cursor:pointer;
+  box-shadow:0 4px 12px rgba(208,119,90,.32);
+}
+.ai-head-btn:active{transform:scale(.96);}
+.ai-head-btn svg{width:15px;height:15px;}
+
+.word-pop{
+  position:fixed;z-index:70;display:none;max-width:min(300px,86vw);
+  background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--r-md);
+  box-shadow:var(--shadow);padding:12px 14px;
+}
+.word-pop.show{display:block;animation:popIn .16s ease both;}
+@keyframes popIn{from{opacity:0;transform:translateY(6px) scale(.97);}to{opacity:1;transform:none;}}
+.wp-word{font-family:var(--font-serif);font-size:19px;font-weight:600;margin-bottom:9px;word-break:break-word;}
+.wp-actions{display:flex;gap:8px;}
+.wp-btn{
+  flex:1;min-height:42px;border-radius:var(--r-sm);border:1px solid var(--line-strong);
+  background:var(--surface);color:var(--ink-soft);font-family:var(--font);font-size:14px;cursor:pointer;
+  transition:transform .12s ease;
+}
+.wp-btn:active{transform:scale(.97);}
+.wp-btn.wp-main{background:var(--clay);color:#FFF9F4;border-color:transparent;}
+.sp-sentence{font-size:14.5px;line-height:1.7;margin-bottom:10px;max-height:180px;overflow-y:auto;}
+
+.ai-tip{font-size:14px;color:var(--ink-soft);line-height:1.8;margin:0 0 14px;}
+.ai-spinner{width:24px;height:24px;border:3px solid var(--clay-soft);border-top-color:var(--clay);border-radius:50%;animation:spin .9s linear infinite;margin:6px auto 14px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.ai-sec-title{font-size:15px;font-weight:600;margin:20px 0 10px;}
+.ai-sec-title small{font-size:12px;color:var(--muted);font-weight:400;margin-left:6px;}
+.ai-row{
+  display:flex;gap:10px;align-items:flex-start;
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);
+  padding:12px 14px;margin-bottom:10px;box-shadow:var(--shadow-soft);cursor:pointer;
+}
+.ai-row input[type=checkbox]{margin-top:4px;accent-color:var(--clay);width:17px;height:17px;flex:none;}
+.ai-row .ai-main{flex:1;min-width:0;}
+.ai-row .ai-word{font-family:var(--font-serif);font-size:16.5px;font-weight:600;}
+.ai-row .ai-ph{color:var(--muted);font-size:13px;margin-left:8px;}
+.ai-row .ai-meaning{font-size:14px;margin-top:2px;}
+.ai-row .ai-example{font-size:13px;color:var(--ink-soft);margin-top:6px;line-height:1.6;background:var(--surface-2);border-radius:var(--r-sm);padding:8px 10px;}
+.ai-row .ai-note{font-size:13px;color:var(--ink-soft);margin-top:4px;line-height:1.6;}
+.ai-sentence{font-family:var(--font-serif);font-size:15px;line-height:1.7;}
+
+.pattern-sec{margin-top:26px;}
+.pattern-sec-title{font-size:15px;font-weight:600;margin:0 0 4px;}
+.pattern-sec .desc{font-size:13px;color:var(--muted);margin:0 0 12px;line-height:1.6;}
+.pattern-item{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-md);padding:13px 15px;margin-bottom:10px;box-shadow:var(--shadow-soft);}
+.pattern-item .p-sentence{font-family:var(--font-serif);font-size:15px;line-height:1.7;}
+.pattern-item .p-note{font-size:13px;color:var(--ink-soft);margin-top:5px;line-height:1.6;}
+.pattern-item .p-foot{display:flex;align-items:center;gap:8px;margin-top:8px;}
+.pattern-item .p-from{font-size:11.5px;color:var(--clay-deep);background:var(--clay-soft);border-radius:99px;padding:3px 10px;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pattern-item .p-del{margin-left:auto;border:none;background:none;color:var(--muted);font-size:12.5px;cursor:pointer;padding:4px 6px;}
+.pattern-item .p-del:hover{color:var(--rose-deep);}
 </style>
 </head>
 <body>
@@ -447,6 +537,28 @@ textarea{resize:vertical;min-height:72px;}
       </div>
     </section>
 
+    <!-- 阅读 -->
+    <section class="view" id="view-read">
+      <p class="section-hint">把文章导进来，在手机上也能舒服地读。点单词直接加入单词卡，选中句子存成句型，还能让 AI 帮你挑出生词和好句型。</p>
+      <div class="read-import">
+        <button class="btn btn-primary btn-block" id="readPasteBtn">粘贴文章</button>
+        <button class="btn btn-ghost btn-block" id="readFileBtn">选择文件导入（txt / md / docx / pdf / xlsx）</button>
+        <input type="file" id="readFileInput" accept=".txt,.md,.markdown,.docx,.pdf,.xlsx,.xls,.csv,.tsv" style="display:none;">
+        <div class="drop-zone" id="readDropZone">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg><br>
+          把文件拖到这里，松手就能读<br><span>txt / md / docx / pdf / xlsx</span>
+        </div>
+      </div>
+      <div class="read-list" id="readList"></div>
+      <div class="empty-tip" id="readEmpty" style="display:none;">还没有文章，先粘贴或导入一篇吧</div>
+
+      <div class="pattern-sec" id="patternSec" style="display:none;">
+        <div class="pattern-sec-title">句型库 <span id="patternCount" style="font-size:12px;color:var(--muted);font-weight:400;"></span></div>
+        <p class="desc">阅读时选中句子就能存进来，都是可以套用到写作和口语里的句子。</p>
+        <div id="patternList"></div>
+      </div>
+    </section>
+
     <!-- 加词 -->
     <section class="view" id="view-add">
       <p class="section-hint">把你想背的单词填进来，音标和例句可以不填。</p>
@@ -526,7 +638,7 @@ textarea{resize:vertical;min-height:72px;}
 
       <div class="data-section">
         <h3>备份</h3>
-        <p class="desc">云端同步之外，再留一份本地备份最保险。</p>
+        <p class="desc">云端同步之外，再留一份本地备份最保险（包含单词、文章和句型）。</p>
         <div class="btn-row">
           <button class="btn btn-ghost btn-block" id="exportBtn">导出备份（下载文件）</button>
           <button class="btn btn-ghost btn-block" id="importBtn">导入备份（选择文件）</button>
@@ -546,6 +658,10 @@ textarea{resize:vertical;min-height:72px;}
     <button class="tab active" data-view="review">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
       复习
+    </button>
+    <button class="tab" data-view="read">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 6.5C10.5 5 8 4.5 5 4.5v14c3 0 5.5.5 7 2 1.5-1.5 4-2 7-2v-14c-3 0-5.5.5-7 2z"/><path d="M12 6.5v14"/></svg>
+      阅读
     </button>
     <button class="tab" data-view="add">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
@@ -580,6 +696,88 @@ textarea{resize:vertical;min-height:72px;}
   <div class="edit-foot">
     <button class="btn btn-danger-ghost" id="editDelete" style="flex:1;">删除</button>
     <button class="btn btn-primary" id="editSave" style="flex:2;">保存修改</button>
+  </div>
+</div>
+
+<!-- 全屏阅读页 -->
+<div class="edit-page" id="readPage">
+  <div class="edit-head">
+    <button class="back-btn" id="readBack">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+      返回
+    </button>
+    <span class="read-head-title" id="readPageTitle"></span>
+    <button class="ai-head-btn" id="readAiBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/></svg>
+      AI 帮我读
+    </button>
+  </div>
+  <div class="read-body" id="readBody"></div>
+</div>
+
+<!-- 粘贴文章页 -->
+<div class="edit-page" id="pastePage">
+  <div class="edit-head">
+    <button class="back-btn" id="pasteBack">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+      返回
+    </button>
+    <span style="font-size:15px;font-weight:600;color:var(--ink-soft);">粘贴文章</span>
+  </div>
+  <div class="edit-body">
+    <div class="field"><label>标题 <em>选填</em><input type="text" id="pasteTitle" placeholder="不填就自动取第一行"></label></div>
+    <div class="field"><label>文章正文</label><textarea id="pasteText" style="min-height:260px;" placeholder="把文章粘贴到这里，中英文都可以…"></textarea></div>
+  </div>
+  <div class="edit-foot">
+    <button class="btn btn-primary btn-block" id="pasteStart">开始阅读</button>
+  </div>
+</div>
+
+<!-- 点词弹窗 -->
+<div class="word-pop" id="wordPop">
+  <div class="wp-word" id="wpWord"></div>
+  <div class="wp-actions">
+    <button class="wp-btn" id="wpSpeak">发音</button>
+    <button class="wp-btn wp-main" id="wpAdd">加入单词卡</button>
+  </div>
+</div>
+
+<!-- 选句弹窗 -->
+<div class="word-pop" id="sentPop">
+  <div class="sp-sentence" id="spSentence"></div>
+  <div class="wp-actions">
+    <button class="wp-btn wp-main" id="spSave">存为句型</button>
+    <button class="wp-btn" id="spClose">取消</button>
+  </div>
+</div>
+
+<!-- AI 分析页 -->
+<div class="edit-page" id="aiPage">
+  <div class="edit-head">
+    <button class="back-btn" id="aiBack">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+      返回
+    </button>
+    <span style="font-size:15px;font-weight:600;color:var(--ink-soft);">AI 帮我读</span>
+  </div>
+  <div class="edit-body">
+    <div id="aiLoading">
+      <div class="ai-spinner"></div>
+      <p class="ai-tip" style="text-align:center;">AI 正在读文章，挑出生词和句型…<br>文章长的话可能要等十几秒，别关页面。</p>
+    </div>
+    <div id="aiResult" style="display:none;">
+      <div class="ai-sec-title">生词推荐<small id="aiWordCount"></small></div>
+      <div id="aiWords"></div>
+      <button class="btn btn-primary btn-block" id="aiAddWords" style="margin:4px 0 8px;">加入勾选的单词</button>
+      <div class="ai-sec-title">可复用句型<small id="aiPatternCount"></small></div>
+      <div id="aiPatterns"></div>
+      <button class="btn btn-ghost btn-block" id="aiAddPatterns" style="margin:4px 0 8px;">存入勾选的句型</button>
+      <button class="btn btn-ghost btn-block" id="aiRetry">重新分析</button>
+    </div>
+    <div id="aiError" style="display:none;">
+      <p class="ai-tip" id="aiErrorText"></p>
+      <button class="btn btn-primary btn-block" id="aiRetry2">重试</button>
+    </div>
   </div>
 </div>
 
@@ -619,6 +817,15 @@ textarea{resize:vertical;min-height:72px;}
   var state = { cards: [] };
   var EMBED_TOKEN = 'ovqyp0U4p24scHXpth3Bwk7GbhiYjnTXC5Xg_phg';
   var FIXED_PWHASH = '5848eb6b57f899ca38ca1fa04124aec2ef103d22d6b82b1a4117e0cabd149aa9';
+  var EMBED_DSKEY = 'fa1da5c48dd1ec893d1414223479a5fa-ks';
+  var DS_API = 'https://api.deepseek.com/chat/completions';
+  var MAMMOTH_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js';
+  var PDFJS_SRC = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+  var PDFJS_WORKER = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  var readingId = null;
+  var popWord = '', popEl = null, popSentence = '';
+  var aiBusy = false, aiData = null;
+  var scrollSaveTimer = null;
   var token = '';
   var session = [], curIdx = 0, total = 0;
   var editingId = null;
@@ -644,6 +851,8 @@ textarea{resize:vertical;min-height:72px;}
       if(raw){ var d = JSON.parse(raw); if(d && Array.isArray(d.cards)) state = d; }
     }catch(e){ state = { cards: [] }; }
     if(!state.cards) state.cards = [];
+    if(!state.reads) state.reads = [];
+    if(!state.patterns) state.patterns = [];
     if(!state.settings) state.settings = {};
     if(typeof state.settings.hideExample !== 'boolean') state.settings.hideExample = false;
     if(!state.settings.scope) state.settings.scope = 'all';
@@ -666,14 +875,20 @@ textarea{resize:vertical;min-height:72px;}
       var f = g.files && g.files['wordcard-data.json'];
       if(!f || !f.content) throw new Error('no file');
       var d = JSON.parse(f.content);
-      return { cards: d.cards || [], pwhash: d.pwhash || '' };
+      return { cards: d.cards || [], pwhash: d.pwhash || '', reads: d.reads || [], patterns: d.patterns || [] };
     });
   }
   function pushCloud(cards){
+    var payload = { version:1, cards: cards, pwhash: localStorage.getItem(PW_KEY) || '', reads: state.reads || [], patterns: state.patterns || [] };
+    var body = JSON.stringify({ files:{ 'wordcard-data.json':{ content: JSON.stringify(payload) } } });
+    if(body.length > 900000){
+      toast('文章太多导致数据太大，云端同步暂停，请先到数据页导出备份');
+      return Promise.reject(new Error('too large'));
+    }
     return fetch(GIST_API, {
       method:'PATCH',
       headers: apiHeaders(),
-      body: JSON.stringify({ files:{ 'wordcard-data.json':{ content: JSON.stringify({ version:1, cards: cards, pwhash: localStorage.getItem(PW_KEY) || '' }) } } })
+      body: body
     }).then(function(r){ if(!r.ok) throw new Error('push '+r.status); });
   }
   function mergeCards(a, b){
@@ -696,6 +911,8 @@ textarea{resize:vertical;min-height:72px;}
     return fetchCloud().then(function(cloud){
       var merged = mergeCards(state.cards, cloud.cards);
       state.cards = merged;
+      state.reads = mergeCards(state.reads || [], cloud.reads || []);
+      state.patterns = mergeCards(state.patterns || [], cloud.patterns || []);
       if(cloud.pwhash) localStorage.setItem(PW_KEY, cloud.pwhash);
       save();
       return pushCloud(merged);
@@ -738,9 +955,17 @@ textarea{resize:vertical;min-height:72px;}
     $all('.tab').forEach(function(t){ t.classList.toggle('active', t.getAttribute('data-view') === name); });
     if(name === 'review'){ refreshStats(); startSession(); }
     if(name === 'list'){ renderList(); }
+    if(name === 'read'){ renderReadList(); }
     if(name === 'data'){ /* 无需额外 */ }
   }
-  function esc(){ closeSheet(); }
+  function esc(){
+    if($('#wordPop').classList.contains('show')){ hideWordPop(); return; }
+    if($('#sentPop').classList.contains('show')){ hideSentPop(); return; }
+    if($('#aiPage').classList.contains('show')){ $('#aiPage').classList.remove('show'); return; }
+    if($('#pastePage').classList.contains('show')){ $('#pastePage').classList.remove('show'); return; }
+    if($('#readPage').classList.contains('show')){ closeRead(); return; }
+    closeSheet();
+  }
 
   /* ============ 复习流程 ============ */
   function refreshStats(){
@@ -1163,6 +1388,485 @@ textarea{resize:vertical;min-height:72px;}
     }catch(e){ importTextFile(file); }
   }
 
+  /* ============ 阅读器 ============ */
+  function dsKey(){ return EMBED_DSKEY ? EMBED_DSKEY.split('').reverse().join('') : ''; }
+  function currentArticle(){
+    return (state.reads || []).filter(function(x){ return x.id === readingId; })[0] || null;
+  }
+  function deriveTitle(text, fallback){
+    if(fallback && String(fallback).trim()) return String(fallback).trim().slice(0, 40);
+    var first = String(text || '').split(/\r?\n/).map(function(l){ return l.trim(); }).filter(Boolean)[0] || '';
+    if(first.length > 24) first = first.slice(0, 24) + '…';
+    return first || '无题文章';
+  }
+  function renderReadList(){
+    var reads = (state.reads || []).slice().sort(function(a,b){ return (b.updatedAt||0)-(a.updatedAt||0); });
+    var wrap = $('#readList'), empty = $('#readEmpty');
+    renderPatterns();
+    if(!reads.length){ wrap.innerHTML = ''; empty.style.display = ''; return; }
+    empty.style.display = 'none';
+    wrap.innerHTML = reads.map(function(r){
+      var chars = (r.text || '').length;
+      var pct = Math.round((r.progress || 0) * 100);
+      return '<div class="read-item" data-read="' + r.id + '">'
+        + '<div class="r-main"><div class="r-title">' + escHtml(r.title || '无题') + '</div>'
+        + '<div class="r-meta">约 ' + chars + ' 字' + (pct > 0 ? ' · 读到 ' + pct + '%' : ' · 还没开始') + '</div></div>'
+        + '<button class="r-del" data-delread="' + r.id + '" title="删除文章"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 7h12M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2M8 7l1 13h6l1-13"/></svg></button>'
+        + '</div>';
+    }).join('');
+  }
+  function renderPatterns(){
+    var list = (state.patterns || []).slice().sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); });
+    $('#patternSec').style.display = list.length ? '' : 'none';
+    var cnt = $('#patternCount');
+    if(cnt) cnt.textContent = list.length ? '（' + list.length + ' 条）' : '';
+    $('#patternList').innerHTML = list.map(function(p){
+      return '<div class="pattern-item">'
+        + '<div class="p-sentence">' + escHtml(p.sentence) + '</div>'
+        + (p.note ? '<div class="p-note">' + escHtml(p.note) + '</div>' : '')
+        + '<div class="p-foot">'
+        + '<span class="p-from"' + (p.from ? '' : ' style="background:var(--surface-2);color:var(--muted);"') + '>' + (p.from ? '来自：' + escHtml(p.from) : '手动收藏') + '</span>'
+        + '<button class="p-del" data-delpat="' + p.id + '">删除</button>'
+        + '</div></div>';
+    }).join('');
+  }
+  function renderArticleText(text){
+    var html = '';
+    String(text || '').split(/\r?\n/).forEach(function(line){
+      var t = line.trim();
+      if(!t) return;
+      var safe = escHtml(t).replace(/([A-Za-z][A-Za-z'\u2019-]*)/g, '<span class="rw" data-w="$1">$1</span>');
+      html += '<p>' + safe + '</p>';
+    });
+    return html || '<p style="color:var(--muted);">（这篇文章没有文字）</p>';
+  }
+  function markAddedWords(){
+    var have = {};
+    activeCards().forEach(function(c){ have[norm(c.word).toLowerCase()] = true; });
+    $all('#readBody .rw').forEach(function(el){
+      el.classList.toggle('added', !!have[(el.dataset.w || '').toLowerCase()]);
+    });
+  }
+  function openRead(id){
+    var r = (state.reads || []).filter(function(x){ return x.id === id; })[0];
+    if(!r) return;
+    readingId = id;
+    $('#readPageTitle').textContent = r.title || '无题';
+    $('#readBody').innerHTML = renderArticleText(r.text || '');
+    markAddedWords();
+    $('#readPage').classList.add('show');
+    requestAnimationFrame(function(){
+      var body = $('#readBody');
+      var max = body.scrollHeight - body.clientHeight;
+      body.scrollTop = max > 0 ? Math.min(max, (r.progress || 0) * max) : 0;
+    });
+  }
+  function closeRead(){
+    hideWordPop(); hideSentPop();
+    $('#readPage').classList.remove('show');
+    if(readingId){
+      var r = (state.reads || []).filter(function(x){ return x.id === readingId; })[0];
+      if(r) r.updatedAt = now();
+      save(); schedulePush();
+    }
+    readingId = null;
+    renderReadList();
+  }
+  function addArticle(text, title){
+    if(String(text).length > 120000){ toast('这篇文章很长，云端同步可能会失败，建议及时导出备份'); }
+    var art = { id: uid(), title: deriveTitle(text, title), text: text, progress: 0, createdAt: now(), updatedAt: now(), updated: now() };
+    state.reads = state.reads || [];
+    state.reads.push(art);
+    save(); schedulePush();
+    renderReadList();
+    openRead(art.id);
+    toast('文章已导入，点单词可以加入单词卡');
+  }
+  function readAsTextArticle(file){
+    var reader = new FileReader();
+    reader.onload = function(){
+      var text = String(reader.result || '');
+      if(!text.trim()){ toast('这个文件里没有文字'); return; }
+      addArticle(text, file.name.replace(/\.[^.]+$/, ''));
+    };
+    reader.onerror = function(){ toast('文件读取失败'); };
+    reader.readAsText(file, 'utf-8');
+  }
+  function loadMammoth(cb){
+    if(window.mammoth){ cb(); return; }
+    var s = document.createElement('script');
+    s.src = MAMMOTH_SRC;
+    s.onload = function(){ cb(); };
+    s.onerror = function(){ toast('加载 Word 解析组件失败，请联网后重试'); };
+    document.head.appendChild(s);
+  }
+  function loadPdfJs(cb){
+    if(window.pdfjsLib){ cb(); return; }
+    var s = document.createElement('script');
+    s.src = PDFJS_SRC;
+    s.onload = function(){
+      if(window.pdfjsLib) window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER;
+      cb();
+    };
+    s.onerror = function(){ toast('加载 PDF 解析组件失败，请联网后重试'); };
+    document.head.appendChild(s);
+  }
+  function importDocx(file){
+    loadMammoth(function(){
+      var reader = new FileReader();
+      reader.onload = function(ev){
+        try{
+          window.mammoth.extractRawText({ arrayBuffer: ev.target.result }).then(function(res){
+            var text = res.value || '';
+            if(!text.trim()){ toast('这个 Word 里没提取到文字（可能是扫描版图片）'); return; }
+            addArticle(text, file.name.replace(/\.[^.]+$/, ''));
+          }).catch(function(){ toast('Word 解析失败，换个文件试试'); });
+        }catch(e){ toast('Word 解析失败，换个文件试试'); }
+      };
+      reader.onerror = function(){ toast('文件读取失败'); };
+      reader.readAsArrayBuffer(file);
+    });
+  }
+  function importPdf(file){
+    loadPdfJs(function(){
+      var reader = new FileReader();
+      reader.onload = function(ev){
+        try{
+          var data = new Uint8Array(ev.target.result);
+          window.pdfjsLib.getDocument({ data: data }).promise.then(function(pdf){
+            var pages = [];
+            var chain = Promise.resolve();
+            for(var i = 1; i <= pdf.numPages; i++){
+              (function(pageNo){
+                chain = chain.then(function(){
+                  return pdf.getPage(pageNo).then(function(page){
+                    return page.getTextContent().then(function(tc){
+                      pages.push(tc.items.map(function(it){ return it.str; }).join(' '));
+                    });
+                  });
+                });
+              })(i);
+            }
+            chain.then(function(){
+              var text = pages.join('\n\n');
+              if(!text.trim()){ toast('这个 PDF 里没提取到文字（可能是扫描版图片）'); return; }
+              addArticle(text, file.name.replace(/\.[^.]+$/, ''));
+            }).catch(function(){ toast('PDF 解析失败，换个文件试试'); });
+          }).catch(function(){ toast('PDF 解析失败，可能是不支持的文件'); });
+        }catch(e){ toast('PDF 解析失败，可能是不支持的文件'); }
+      };
+      reader.onerror = function(){ toast('文件读取失败'); };
+      reader.readAsArrayBuffer(file);
+    });
+  }
+  function importSheetArticle(file){
+    loadXLSX(function(){
+      var reader = new FileReader();
+      reader.onload = function(ev){
+        try{
+          var wb = window.XLSX.read(new Uint8Array(ev.target.result), { type:'array' });
+          var text = wb.SheetNames.map(function(n){
+            var rows = window.XLSX.utils.sheet_to_json(wb.Sheets[n], { header:1, raw:false, defval:'' });
+            return rows.map(function(r){ return (r || []).map(function(x){ return String(x == null ? '' : x); }).join(' '); }).join('\n');
+          }).join('\n\n');
+          if(!text.trim()){ toast('这个表格里没有文字'); return; }
+          addArticle(text, file.name.replace(/\.[^.]+$/, ''));
+        }catch(e){ toast('表格解析失败，确认是标准 xlsx/xls 文件'); }
+      };
+      reader.onerror = function(){ toast('文件读取失败'); };
+      reader.readAsArrayBuffer(file);
+    });
+  }
+  function importReadFile(file){
+    var name = String(file.name || '').toLowerCase();
+    if(/\.(txt|md|markdown)$/.test(name)){ readAsTextArticle(file); return; }
+    if(/\.docx$/.test(name)){ importDocx(file); return; }
+    if(/\.pdf$/.test(name)){ importPdf(file); return; }
+    if(/\.(xlsx|xls|csv|tsv)$/.test(name)){ importSheetArticle(file); return; }
+    // 后缀名不可信，读文件头几个字节嗅探真实格式
+    try{
+      file.slice(0, 5).arrayBuffer().then(function(buf){
+        var b = new Uint8Array(buf);
+        var head = '';
+        for(var i = 0; i < b.length; i++) head += String.fromCharCode(b[i]);
+        if(head.indexOf('%PDF') === 0){ importPdf(file); return; }
+        if(b[0] === 0x50 && b[1] === 0x4B){
+          // zip 包：再看是 Word（docx）还是 Excel（xlsx）
+          file.slice(0, 4096).arrayBuffer().then(function(buf2){
+            var s = '', u = new Uint8Array(buf2);
+            for(var i = 0; i < u.length; i++) s += String.fromCharCode(u[i]);
+            if(s.indexOf('word/') >= 0) importDocx(file); else importSheetArticle(file);
+          }).catch(function(){ importSheetArticle(file); });
+          return;
+        }
+        if(b[0] === 0xD0 && b[1] === 0xCF){ importSheetArticle(file); return; }
+        readAsTextArticle(file);
+      }).catch(function(){ readAsTextArticle(file); });
+    }catch(e){ readAsTextArticle(file); }
+  }
+
+  /* ============ 点词入卡 / 存句型 ============ */
+  function showWordPop(el){
+    popWord = el.getAttribute('data-w') || '';
+    popEl = el;
+    $('#wpWord').textContent = popWord;
+    var pop = $('#wordPop');
+    pop.classList.add('show');
+    var rect = el.getBoundingClientRect();
+    var pw = pop.offsetWidth, ph = pop.offsetHeight;
+    var left = Math.min(Math.max(8, rect.left + rect.width / 2 - pw / 2), window.innerWidth - pw - 8);
+    var top = rect.top - ph - 8;
+    if(top < 70) top = rect.bottom + 8;
+    pop.style.left = left + 'px';
+    pop.style.top = top + 'px';
+  }
+  function hideWordPop(){ $('#wordPop').classList.remove('show'); popWord = ''; popEl = null; }
+  function showSentPop(){
+    var sel = window.getSelection();
+    var txt = sel ? sel.toString().trim() : '';
+    if(!txt) return;
+    if(txt.length > 300) txt = txt.slice(0, 300) + '…';
+    popSentence = txt;
+    $('#spSentence').textContent = txt;
+    var pop = $('#sentPop');
+    pop.classList.add('show');
+    var rect = sel.getRangeAt(0).getBoundingClientRect();
+    var pw = pop.offsetWidth, ph = pop.offsetHeight;
+    var left = Math.min(Math.max(8, rect.left), window.innerWidth - pw - 8);
+    var top = rect.bottom + 8;
+    if(top + ph > window.innerHeight - 80) top = Math.max(70, rect.top - ph - 8);
+    pop.style.left = left + 'px';
+    pop.style.top = top + 'px';
+  }
+  function hideSentPop(){ $('#sentPop').classList.remove('show'); popSentence = ''; }
+  function onReadSelect(){
+    setTimeout(function(){
+      var sel = window.getSelection();
+      if(!sel || sel.isCollapsed || !sel.toString().trim()) return;
+      var body = $('#readBody');
+      if(!body.contains(sel.anchorNode)) return;
+      showSentPop();
+    }, 10);
+  }
+  function addWordFromPop(){
+    var w = popWord;
+    if(!w) return;
+    var key = w.toLowerCase();
+    var art = currentArticle();
+    var tag = art ? (art.title || '') : '';
+    var ex = activeCards().filter(function(c){ return norm(c.word).toLowerCase() === key; })[0];
+    if(ex){
+      var changed = false;
+      if(tag){
+        ex.tags = ex.tags || [];
+        if(ex.tags.indexOf(tag) < 0){ ex.tags.push(tag); ex.updated = now(); changed = true; }
+      }
+      if(changed){ save(); schedulePush(); renderAll(); markAddedWords(); toast('「' + w + '」已在单词本，已补上文章标签'); }
+      else { toast('「' + w + '」已经在单词本里了'); }
+      hideWordPop();
+      return;
+    }
+    state.cards.push({ id: uid(), word: w, phonetic:'', meaning:'', example:'', tags: tag ? [tag] : [], level:0, due: now(), reps:0, createdAt: now(), updated: now() });
+    save(); schedulePush(); renderAll();
+    if(popEl) popEl.classList.add('added');
+    hideWordPop();
+    toast('已加入单词卡，意思空着，记得在单词本里补上释义');
+  }
+  function savePatternFromPop(){
+    if(!popSentence) return;
+    var art = currentArticle();
+    if((state.patterns || []).some(function(p){ return p.sentence === popSentence; })){
+      toast('这句已经在句型库里了'); hideSentPop(); return;
+    }
+    state.patterns = state.patterns || [];
+    state.patterns.push({ id: uid(), sentence: popSentence, note: '', from: (art && art.title) || '', createdAt: now(), updated: now() });
+    save(); schedulePush();
+    hideSentPop();
+    renderPatterns();
+    $('#patternSec').style.display = '';
+    toast('已存入句型库');
+  }
+
+  /* ============ AI 帮我读 ============ */
+  function aiKnownWords(){
+    var set = {};
+    activeCards().forEach(function(c){ set[norm(c.word).toLowerCase()] = true; });
+    return Object.keys(set);
+  }
+  function buildAiPrompt(article){
+    var known = aiKnownWords().slice(0, 800).join(', ');
+    var text = article.text || '';
+    if(text.length > 8000) text = text.slice(0, 8000) + '\n……（文章太长，只分析了前半部分）';
+    return '你是一位资深的英语教学专家。请仔细阅读下面的英文文章，帮学生挑出值得学的内容。\n\n'
+      + '【学生已学过的词，不要重复推荐】\n' + (known || '（还没有学过任何词）') + '\n\n'
+      + '【任务一：生词】从文章里挑 5 到 12 个值得学的生词：\n'
+      + '1. 不能出现在上面已学过的词里；\n'
+      + '2. 优先选学术常用词（高考、四六级、雅思核心词，如 G4 / NAWL 级别），文章里太简单的词不要；\n'
+      + '3. 每个词给出：word（单词原形）、phonetic（音标）、meaning（简洁中文释义）、example（文章中出现这个词的英文原句）。\n\n'
+      + '【任务二：可复用句型】从文章里挑 2 到 6 个值得摘抄的句子：\n'
+      + '1. 是写作、口语里能直接套用的功能句（例如 It is widely believed that... / Not only does..., but it also...）；\n'
+      + '2. sentence 填英文原句，note 用中文说明这个句型的意思和怎么套用。\n\n'
+      + '【文章】\n' + text + '\n\n'
+      + '【输出要求】只返回纯 JSON 文本，不要任何解释，不要用 markdown 代码块，格式：\n'
+      + '{"words":[{"word":"","phonetic":"","meaning":"","example":""}],"patterns":[{"sentence":"","note":""}]}';
+  }
+  function aiErrText(e){
+    var m = (e && e.message) || '';
+    if(/Failed to fetch|NetworkError|load failed/i.test(m)) return '网络不给力，AI 没连上，检查网络后点重试';
+    return 'AI 分析失败：' + m + '。可以点重试再来一次';
+  }
+  function aiShowError(msg){
+    aiBusy = false;
+    $('#aiLoading').style.display = 'none';
+    $('#aiResult').style.display = 'none';
+    $('#aiError').style.display = '';
+    $('#aiErrorText').textContent = msg;
+  }
+  function parseAiJson(content){
+    var s = String(content || '').trim();
+    s = s.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
+    var i = s.indexOf('{'), j = s.lastIndexOf('}');
+    if(i < 0 || j <= i) return null;
+    try{
+      var d = JSON.parse(s.slice(i, j + 1));
+      if(!d || typeof d !== 'object') return null;
+      var words = Array.isArray(d.words) ? d.words.filter(function(w){ return w && w.word; }) : [];
+      var patterns = Array.isArray(d.patterns) ? d.patterns.filter(function(p){ return p && p.sentence; }) : [];
+      return { words: words, patterns: patterns };
+    }catch(e){ return null; }
+  }
+  function aiAnalyze(){
+    var art = currentArticle();
+    if(!art){ toast('先打开一篇文章'); return; }
+    if(aiBusy) return;
+    var key = dsKey();
+    if(!key){ aiShowError('AI 功能没有配置钥匙，暂时用不了'); return; }
+    aiBusy = true;
+    $('#aiPage').classList.add('show');
+    $('#aiLoading').style.display = '';
+    $('#aiResult').style.display = 'none';
+    $('#aiError').style.display = 'none';
+    fetch(DS_API, {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer ' + key },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [
+          { role:'system', content:'你是严谨的英语教学助手，擅长从文章中提炼生词和句型，严格按照要求的 JSON 格式输出。' },
+          { role:'user', content: buildAiPrompt(art) }
+        ],
+        max_tokens: 3000,
+        temperature: 0.3
+      })
+    }).then(function(r){
+      return r.json().then(function(j){ return { status: r.status, j: j }; });
+    }).then(function(res){
+      if(res.status !== 200 || !res.j || !res.j.choices || !res.j.choices[0]){
+        var msg = (res.j && res.j.error && res.j.error.message) ? res.j.error.message : ('错误码 ' + res.status);
+        if(res.status === 401) msg = 'AI 钥匙失效了';
+        if(res.status === 402) msg = 'AI 余额不足，充值后才能继续用';
+        if(res.status === 429) msg = '请求太频繁，歇一会儿再试';
+        throw new Error(msg);
+      }
+      var data = parseAiJson(res.j.choices[0].message.content || '');
+      if(!data) throw new Error('AI 返回的结果格式不对');
+      aiData = data;
+      renderAiResult(data);
+    }).catch(function(e){
+      aiShowError(aiErrText(e));
+    }).then(function(){
+      aiBusy = false;
+    });
+  }
+  function renderAiResult(data){
+    $('#aiLoading').style.display = 'none';
+    $('#aiError').style.display = 'none';
+    $('#aiResult').style.display = '';
+    var known = aiKnownWords();
+    if(!data.words.length){
+      $('#aiWords').innerHTML = '<p class="ai-tip">这篇没有合适的生词推荐，可能文章里的词你都学过，或者文章太短。</p>';
+    } else {
+      $('#aiWords').innerHTML = data.words.map(function(w, idx){
+        var dup = known.indexOf(String(w.word).toLowerCase()) >= 0;
+        return '<label class="ai-row"><input type="checkbox" class="ai-w-cb" data-idx="' + idx + '"' + (dup ? ' disabled' : ' checked') + '>'
+          + '<div class="ai-main"><div><span class="ai-word">' + escHtml(w.word) + '</span><span class="ai-ph">' + escHtml(w.phonetic || '') + '</span>'
+          + (dup ? '<span style="font-size:11.5px;color:var(--muted);margin-left:6px;">已学过</span>' : '')
+          + '</div><div class="ai-meaning">' + escHtml(w.meaning || '') + '</div>'
+          + (w.example ? '<div class="ai-example">' + escHtml(w.example) + '</div>' : '')
+          + '</div></label>';
+      }).join('');
+    }
+    $('#aiWordCount').textContent = data.words.length ? data.words.length + ' 个' : '';
+    if(!data.patterns.length){
+      $('#aiPatterns').innerHTML = '<p class="ai-tip">这篇没有合适的句型推荐。</p>';
+    } else {
+      $('#aiPatterns').innerHTML = data.patterns.map(function(p, idx){
+        return '<label class="ai-row"><input type="checkbox" class="ai-p-cb" data-idx="' + idx + '" checked>'
+          + '<div class="ai-main"><div class="ai-sentence">' + escHtml(p.sentence) + '</div>'
+          + (p.note ? '<div class="ai-note">' + escHtml(p.note) + '</div>' : '')
+          + '</div></label>';
+      }).join('');
+    }
+    $('#aiPatternCount').textContent = data.patterns.length ? data.patterns.length + ' 句' : '';
+    updateAiBtnCounts();
+  }
+  function updateAiBtnCounts(){
+    var w = $all('.ai-w-cb').filter(function(cb){ return cb.checked && !cb.disabled; }).length;
+    var p = $all('.ai-p-cb').filter(function(cb){ return cb.checked && !cb.disabled; }).length;
+    var bw = $('#aiAddWords'), bp = $('#aiAddPatterns');
+    bw.textContent = w ? ('把勾选的 ' + w + ' 个单词加入单词卡') : '先把单词勾上';
+    bw.disabled = !w;
+    bp.textContent = p ? ('把勾选的 ' + p + ' 句存入句型库') : '先把句型勾上';
+    bp.disabled = !p;
+  }
+  function aiAddWordsToCards(){
+    if(!aiData) return;
+    var art = currentArticle();
+    var tag = art ? (art.title || '') : '';
+    var added = 0, skipped = 0;
+    $all('.ai-w-cb').forEach(function(cb){
+      if(!cb.checked || cb.disabled) return;
+      var w = aiData.words[+cb.getAttribute('data-idx')];
+      if(!w) return;
+      var word = String(w.word).trim();
+      var ex = activeCards().filter(function(c){ return norm(c.word).toLowerCase() === word.toLowerCase(); })[0];
+      if(ex){
+        if(tag){ ex.tags = ex.tags || []; if(ex.tags.indexOf(tag) < 0){ ex.tags.push(tag); ex.updated = now(); } }
+        skipped++;
+        cb.disabled = true; cb.checked = false;
+        return;
+      }
+      state.cards.push({ id: uid(), word: word, phonetic: String(w.phonetic || '').trim(), meaning: String(w.meaning || '').trim(), example: String(w.example || '').trim(), tags: tag ? [tag] : [], level:0, due: now(), reps:0, createdAt: now(), updated: now() });
+      added++;
+      cb.disabled = true; cb.checked = false;
+    });
+    save(); schedulePush(); renderAll(); markAddedWords(); updateAiBtnCounts();
+    toast('已加入 ' + added + ' 个单词' + (skipped ? '，' + skipped + ' 个本来就有' : '') + '，去复习页就能学到');
+  }
+  function aiAddPatternsToLib(){
+    if(!aiData) return;
+    var art = currentArticle();
+    var from = art ? (art.title || '') : '';
+    var added = 0, skipped = 0;
+    $all('.ai-p-cb').forEach(function(cb){
+      if(!cb.checked || cb.disabled) return;
+      var p = aiData.patterns[+cb.getAttribute('data-idx')];
+      if(!p) return;
+      var s = String(p.sentence).trim();
+      if((state.patterns || []).some(function(x){ return x.sentence === s; })){
+        skipped++;
+        cb.disabled = true; cb.checked = false;
+        return;
+      }
+      state.patterns = state.patterns || [];
+      state.patterns.push({ id: uid(), sentence: s, note: String(p.note || '').trim(), from: from, createdAt: now(), updated: now() });
+      added++;
+      cb.disabled = true; cb.checked = false;
+    });
+    save(); schedulePush(); renderReadList(); updateAiBtnCounts();
+    toast('已存入 ' + added + ' 句句型' + (skipped ? '，' + skipped + ' 句本来就有' : ''));
+  }
+
   /* ============ 单词本 ============ */
   function renderList(){
     var cards = activeCards();
@@ -1241,14 +1945,14 @@ textarea{resize:vertical;min-height:72px;}
 
   /* ============ 数据页 ============ */
   function exportBackup(){
-    var data = { exportedAt: new Date().toISOString(), cards: activeCards(), settings: state.settings };
+    var data = { exportedAt: new Date().toISOString(), cards: activeCards(), settings: state.settings, reads: state.reads || [], patterns: state.patterns || [] };
     var blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = '单词卡备份-' + new Date().toISOString().slice(0,10) + '.json';
     document.body.appendChild(a); a.click();
     setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
-    toast('备份文件已开始下载');
+    toast('备份文件已开始下载（含单词、文章和句型）');
   }
   function importBackup(file){
     var reader = new FileReader();
@@ -1268,9 +1972,11 @@ textarea{resize:vertical;min-height:72px;}
           if($('#newLimitInput')) $('#newLimitInput').value = state.settings.dailyNewLimit;
         }
         state.cards = mergeCards(state.cards, arr);
+        if(d.reads && d.reads.length) state.reads = mergeCards(state.reads || [], d.reads);
+        if(d.patterns && d.patterns.length) state.patterns = mergeCards(state.patterns || [], d.patterns);
         save(); schedulePush();
         renderAll(); startSession();
-        toast('已导入 ' + arr.length + ' 条');
+        toast('已导入 ' + arr.length + ' 条（文章和句型如有也会一起恢复）');
       }catch(e){ toast('导入失败，文件格式不对'); }
     };
     reader.readAsText(file);
@@ -1417,7 +2123,7 @@ textarea{resize:vertical;min-height:72px;}
   }
 
   function renderAll(){
-    refreshStats(); renderList(); renderTagFilter(); renderRecent();
+    refreshStats(); renderList(); renderTagFilter(); renderRecent(); renderReadList();
   }
 
   /* ============ 事件绑定 ============ */
@@ -1515,6 +2221,104 @@ textarea{resize:vertical;min-height:72px;}
       var item = e.target.closest('.word-item');
       if(item) openSheet(item.getAttribute('data-id'));
     });
+
+    // 阅读器
+    $('#readPasteBtn').addEventListener('click', function(){
+      $('#pastePage').classList.add('show');
+      setTimeout(function(){ $('#pasteText').focus(); }, 60);
+    });
+    $('#pasteBack').addEventListener('click', function(){ $('#pastePage').classList.remove('show'); });
+    $('#pasteStart').addEventListener('click', function(){
+      var text = $('#pasteText').value;
+      if(!text.trim()){ toast('先粘贴文章内容'); return; }
+      var title = $('#pasteTitle').value.trim();
+      $('#pasteText').value = ''; $('#pasteTitle').value = '';
+      $('#pastePage').classList.remove('show');
+      addArticle(text, title);
+    });
+    $('#readFileBtn').addEventListener('click', function(){ $('#readFileInput').click(); });
+    $('#readFileInput').addEventListener('change', function(){
+      if(this.files && this.files[0]) importReadFile(this.files[0]);
+      this.value = '';
+    });
+    var rzone = $('#readDropZone');
+    ['dragenter','dragover'].forEach(function(t){
+      rzone.addEventListener(t, function(e){ e.preventDefault(); e.stopPropagation(); rzone.classList.add('drag'); });
+    });
+    rzone.addEventListener('dragleave', function(e){ e.preventDefault(); e.stopPropagation(); rzone.classList.remove('drag'); });
+    rzone.addEventListener('drop', function(e){
+      e.preventDefault(); e.stopPropagation(); rzone.classList.remove('drag');
+      var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if(f) importReadFile(f);
+    });
+    $('#readBack').addEventListener('click', closeRead);
+    $('#readBody').addEventListener('scroll', function(){
+      hideWordPop();
+      if(!readingId) return;
+      clearTimeout(scrollSaveTimer);
+      scrollSaveTimer = setTimeout(function(){
+        var body = $('#readBody');
+        var max = body.scrollHeight - body.clientHeight;
+        var r = (state.reads || []).filter(function(x){ return x.id === readingId; })[0];
+        if(!r) return;
+        r.progress = max > 0 ? Math.min(1, body.scrollTop / max) : 1;
+        r.updatedAt = now();
+        save();
+      }, 400);
+    });
+    $('#readBody').addEventListener('click', function(e){
+      var w = e.target.closest('.rw');
+      if(!w){
+        hideWordPop();
+        var sel = window.getSelection();
+        if(!sel || !sel.toString().trim()) hideSentPop();
+        return;
+      }
+      var sel2 = window.getSelection();
+      if(sel2 && !sel2.isCollapsed && sel2.toString().trim()) return; // 正在选句子，不弹单词卡
+      hideSentPop();
+      showWordPop(w);
+    });
+    $('#readBody').addEventListener('mouseup', onReadSelect);
+    $('#readBody').addEventListener('touchend', onReadSelect);
+    $('#wpSpeak').addEventListener('click', function(){ if(popWord) speak(popWord); });
+    $('#wpAdd').addEventListener('click', addWordFromPop);
+    $('#spSave').addEventListener('click', savePatternFromPop);
+    $('#spClose').addEventListener('click', hideSentPop);
+    $('#readList').addEventListener('click', function(e){
+      var del = e.target.closest('[data-delread]');
+      if(del){
+        e.stopPropagation();
+        var id = del.getAttribute('data-delread');
+        var r = (state.reads || []).filter(function(x){ return x.id === id; })[0];
+        if(r && confirm('删除文章「' + (r.title || '无题') + '」？此操作无法撤销。')){
+          state.reads = state.reads.filter(function(x){ return x.id !== id; });
+          save(); schedulePush(); renderReadList();
+          toast('已删除');
+        }
+        return;
+      }
+      var item = e.target.closest('[data-read]');
+      if(item) openRead(item.getAttribute('data-read'));
+    });
+    $('#patternList').addEventListener('click', function(e){
+      var del = e.target.closest('[data-delpat]');
+      if(!del) return;
+      var id = del.getAttribute('data-delpat');
+      state.patterns = state.patterns.filter(function(x){ return x.id !== id; });
+      save(); schedulePush(); renderReadList();
+      toast('已删除');
+    });
+
+    // AI 帮我读
+    $('#readAiBtn').addEventListener('click', aiAnalyze);
+    $('#aiBack').addEventListener('click', function(){ $('#aiPage').classList.remove('show'); });
+    $('#aiRetry').addEventListener('click', aiAnalyze);
+    $('#aiRetry2').addEventListener('click', aiAnalyze);
+    $('#aiWords').addEventListener('change', updateAiBtnCounts);
+    $('#aiPatterns').addEventListener('change', updateAiBtnCounts);
+    $('#aiAddWords').addEventListener('click', aiAddWordsToCards);
+    $('#aiAddPatterns').addEventListener('click', aiAddPatternsToLib);
 
     $('#editBack').addEventListener('click', closeSheet);
     $('#editSave').addEventListener('click', saveEdit);
