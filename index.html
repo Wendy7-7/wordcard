@@ -586,8 +586,13 @@ textarea{resize:vertical;min-height:72px;}
   <div class="lock-card">
     <div class="lock-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg></div>
     <div class="lock-title" id="lockTitle">输入密码解锁</div>
-    <p class="lock-desc" id="lockDesc">你的单词是私有加密的，输入密码才能打开。</p>
-    <div id="lockSetWrap">
+    <p class="lock-desc" id="lockDesc">你的单词是私密的，输入密码才能打开。</p>
+    <div id="lockConnectWrap" style="display:none;">
+      <input type="password" id="lockToken" placeholder="粘贴你的钥匙 ghp_…" autocomplete="off">
+      <button class="btn btn-primary btn-block" id="lockConnectBtn">同步我的单词</button>
+      <button class="btn btn-ghost btn-block" id="lockSkipBtn">暂时跳过（仅本机使用）</button>
+    </div>
+    <div id="lockSetWrap" style="display:none;">
       <input type="password" id="lockPw1" placeholder="设置一个密码" autocomplete="off">
       <input type="password" id="lockPw2" placeholder="再输一遍确认" autocomplete="off">
       <button class="btn btn-primary btn-block" id="lockSetBtn">设置密码</button>
@@ -597,7 +602,7 @@ textarea{resize:vertical;min-height:72px;}
       <button class="btn btn-primary btn-block" id="lockEnterBtn">进入单词卡</button>
     </div>
     <p class="lock-error" id="lockError"></p>
-    <p class="lock-note">密码只存在这台设备里，别人打不开。若忘记密码，清空本网站的浏览器数据后可重新设置；你的词还在云端，重新连接钥匙就能找回。</p>
+    <p class="lock-note">每台设备第一次用时，粘贴一次钥匙就能同步你的单词；之后每天只需输入密码解锁。密码和钥匙只存在你自己设备的浏览器里，别人打不开。</p>
   </div>
 </div>
 
@@ -660,14 +665,14 @@ textarea{resize:vertical;min-height:72px;}
       var f = g.files && g.files['wordcard-data.json'];
       if(!f || !f.content) throw new Error('no file');
       var d = JSON.parse(f.content);
-      return { cards: d.cards || [] };
+      return { cards: d.cards || [], pwhash: d.pwhash || '' };
     });
   }
   function pushCloud(cards){
     return fetch(GIST_API, {
       method:'PATCH',
       headers: apiHeaders(),
-      body: JSON.stringify({ files:{ 'wordcard-data.json':{ content: JSON.stringify({ version:1, cards: cards }) } } })
+      body: JSON.stringify({ files:{ 'wordcard-data.json':{ content: JSON.stringify({ version:1, cards: cards, pwhash: localStorage.getItem(PW_KEY) || '' }) } } })
     }).then(function(r){ if(!r.ok) throw new Error('push '+r.status); });
   }
   function mergeCards(a, b){
@@ -683,17 +688,19 @@ textarea{resize:vertical;min-height:72px;}
   function schedulePush(){
     if(!token) return;
     clearTimeout(pushTimer);
-    pushTimer = setTimeout(doSync, 900);
+    pushTimer = setTimeout(function(){ doSync().catch(function(){}); }, 900);
   }
   function doSync(){
-    if(!token) return;
-    fetchCloud().then(function(cloud){
+    if(!token) return Promise.reject(new Error('no token'));
+    return fetchCloud().then(function(cloud){
       var merged = mergeCards(state.cards, cloud.cards);
-      state.cards = merged; save();
+      state.cards = merged;
+      if(cloud.pwhash && !localStorage.getItem(PW_KEY)) localStorage.setItem(PW_KEY, cloud.pwhash);
+      save();
       return pushCloud(merged);
     }).then(function(){
-      renderAll();
-    }).catch(function(){ /* 静默失败，避免打扰 */ });
+      renderAll(); startSession();
+    });
   }
   function setSyncState(kind, text){
     var el = $('#syncState');
@@ -1270,22 +1277,36 @@ textarea{resize:vertical;min-height:72px;}
     toast('已清空');
   }
 
-  function connectSync(){
-    var t = norm($('#syncToken').value);
-    if(!t){ toast('请先粘贴你的钥匙'); return; }
+  function connectSync(inputEl, fromLock){
+    var t = norm(inputEl.value);
+    if(!t){
+      if(fromLock){ lockError('请先粘贴你的钥匙'); } else { toast('请先粘贴你的钥匙'); }
+      return;
+    }
     $('#syncConnect').disabled = true;
     setToken(t);
-    setSyncState('wait', '正在连接…');
+    setSyncState('wait', '正在同步…');
     fetchCloud().then(function(cloud){
       var merged = mergeCards(state.cards, cloud.cards);
-      state.cards = merged; save();
+      state.cards = merged;
+      if(cloud.pwhash && !localStorage.getItem(PW_KEY)) localStorage.setItem(PW_KEY, cloud.pwhash);
+      save();
       setSyncState('ok', '已连接，同步成功');
-      renderAll();
-      toast('连接成功，云端数据已同步');
+      renderAll(); startSession();
+      return pushCloud(merged);
+    }).then(function(){
+      if(fromLock){
+        $('#lockError').textContent = '';
+        showLock();
+        toast('单词同步成功');
+      } else {
+        toast('连接成功，云端数据已同步');
+      }
     }).catch(function(){
       setToken('');
       setSyncState('bad', '连接失败，请检查钥匙或网络');
-      toast('连接失败，请检查钥匙或网络');
+      if(fromLock){ lockError('连接失败，请核对钥匙是否粘贴正确、网络是否正常'); }
+      else { toast('连接失败，请检查钥匙或网络'); }
     }).finally(function(){ $('#syncConnect').disabled = false; });
   }
 
@@ -1294,11 +1315,8 @@ textarea{resize:vertical;min-height:72px;}
     if(!token){ setSyncState('', '未连接'); return; }
     $('#syncToken').value = token;
     setSyncState('wait', '正在同步…');
-    fetchCloud().then(function(cloud){
-      var merged = mergeCards(state.cards, cloud.cards);
-      state.cards = merged; save();
+    doSync().then(function(){
       setSyncState('ok', '已连接，已自动同步');
-      renderAll();
     }).catch(function(){
       setSyncState('bad', '同步失败，可能没联网');
     });
@@ -1326,17 +1344,24 @@ textarea{resize:vertical;min-height:72px;}
   function showLock(){
     $('#lockScreen').style.display = 'flex';
     $('#lockError').textContent = '';
+    var connect = $('#lockConnectWrap'), setW = $('#lockSetWrap'), enterW = $('#lockEnterWrap');
+    connect.style.display = 'none'; setW.style.display = 'none'; enterW.style.display = 'none';
+    if(!token){
+      connect.style.display = '';
+      $('#lockTitle').textContent = '连接并同步';
+      $('#lockDesc').textContent = '这好像是第一次在这台设备上用。粘贴你的钥匙（只需一次），就能把单词同步过来。';
+      $('#lockToken').focus();
+      return;
+    }
     if(hasPassword()){
+      enterW.style.display = '';
       $('#lockTitle').textContent = '输入密码解锁';
-      $('#lockDesc').textContent = '你的单词是私有加密的，输入密码才能打开。';
-      $('#lockSetWrap').style.display = 'none';
-      $('#lockEnterWrap').style.display = '';
+      $('#lockDesc').textContent = '你的单词是私密的，输入密码才能打开。';
       $('#lockPwEnter').focus();
     } else {
+      setW.style.display = '';
       $('#lockTitle').textContent = '设置密码';
-      $('#lockDesc').textContent = '首次使用，设一个只有你知道的密码，以后每次打开都要输入。';
-      $('#lockSetWrap').style.display = '';
-      $('#lockEnterWrap').style.display = 'none';
+      $('#lockDesc').textContent = '设一个只有你知道的密码，以后每台设备都用它解锁。';
       $('#lockPw1').focus();
     }
   }
@@ -1416,6 +1441,9 @@ textarea{resize:vertical;min-height:72px;}
     document.addEventListener('drop', function(e){ e.preventDefault(); });
 
     // 密码锁
+    $('#lockConnectBtn').addEventListener('click', function(){ connectSync($('#lockToken'), true); });
+    $('#lockSkipBtn').addEventListener('click', function(){ hideLock(); });
+    $('#lockToken').addEventListener('keydown', function(e){ if(e.key === 'Enter'){ connectSync($('#lockToken'), true); } });
     $('#lockSetBtn').addEventListener('click', setPassword);
     $('#lockEnterBtn').addEventListener('click', enterPassword);
     $('#lockPwEnter').addEventListener('keydown', function(e){ if(e.key === 'Enter'){ enterPassword(); } });
@@ -1478,11 +1506,12 @@ textarea{resize:vertical;min-height:72px;}
       this.value = '';
     });
     $('#clearBtn').addEventListener('click', clearAll);
-    $('#syncConnect').addEventListener('click', connectSync);
+    $('#syncConnect').addEventListener('click', function(){ connectSync($('#syncToken'), false); });
     $('#syncNow').addEventListener('click', function(){
       if(!token){ toast('请先连接（粘贴钥匙）'); return; }
       setSyncState('wait', '正在同步…');
-      doSync(); setSyncState('ok', '已连接，已同步');
+      doSync().then(function(){ setSyncState('ok', '已连接，已同步'); })
+        .catch(function(){ setSyncState('bad', '同步失败，请检查网络'); });
     });
 
     document.addEventListener('keydown', function(e){
@@ -1516,7 +1545,14 @@ textarea{resize:vertical;min-height:72px;}
   if($('#hideExToggle')) $('#hideExToggle').checked = !!state.settings.hideExample;
   if($('#newLimitInput')) $('#newLimitInput').value = state.settings.dailyNewLimit;
   startSession();
-  showLock();
+  token = getToken();
+  if(token){
+    setSyncState('wait', '正在同步…');
+    doSync().then(function(){ setSyncState('ok', '已连接，已自动同步'); showLock(); })
+      .catch(function(){ setSyncState('bad', '同步失败，可能没联网'); showLock(); });
+  } else {
+    showLock();
+  }
 })();
 </script>
 </body>
