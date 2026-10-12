@@ -597,7 +597,7 @@ textarea{resize:vertical;min-height:72px;}
       <button class="btn btn-primary btn-block" id="lockEnterBtn">进入单词卡</button>
     </div>
     <p class="lock-error" id="lockError"></p>
-    <p class="lock-note">每台设备第一次用时，粘贴一次钥匙就能同步你的单词；之后每天只需输入密码解锁。密码和钥匙只存在你自己设备的浏览器里，别人打不开。</p>
+    <p class="lock-note">输入密码 j20070109 即可进入，词汇会自动从云端同步过来，不用再输入钥匙。</p>
   </div>
 </div>
 
@@ -614,6 +614,7 @@ textarea{resize:vertical;min-height:72px;}
 
   var state = { cards: [] };
   var EMBED_TOKEN = 'ovqyp0U4p24scHXpth3Bwk7GbhiYjnTXC5Xg_phg';
+  var FIXED_PWHASH = '5848eb6b57f899ca38ca1fa04124aec2ef103d22d6b82b1a4117e0cabd149aa9';
   var token = '';
   var session = [], curIdx = 0, total = 0;
   var editingId = null;
@@ -1313,8 +1314,10 @@ textarea{resize:vertical;min-height:72px;}
     setSyncState('wait', '正在同步…');
     doSync().then(function(){
       setSyncState('ok', '已连接，已自动同步');
+      toast('已同步 ' + activeCards().length + ' 个单词');
     }).catch(function(){
       setSyncState('bad', '同步失败，可能没联网');
+      toast('词汇同步失败，请连好网络后重进一次');
     });
   }
 
@@ -1335,7 +1338,7 @@ textarea{resize:vertical;min-height:72px;}
       return a.map(function(b){ return ('0' + b.toString(16)).slice(-2); }).join('');
     });
   }
-  function hasPassword(){ return !!localStorage.getItem(PW_KEY); }
+  function hasPassword(){ return !!FIXED_PWHASH || !!localStorage.getItem(PW_KEY); }
   function lockError(msg){ $('#lockError').textContent = msg; }
   function showLock(){
     $('#lockScreen').style.display = 'flex';
@@ -1372,7 +1375,7 @@ textarea{resize:vertical;min-height:72px;}
     var p = $('#lockPwEnter').value;
     if(!p){ lockError('请输入密码'); return; }
     sha256hex(p).then(function(h){
-      if(h === localStorage.getItem(PW_KEY)){
+      if(h === FIXED_PWHASH || h === localStorage.getItem(PW_KEY)){
         $('#lockPwEnter').value = ''; $('#lockError').textContent = '';
         hideLock();
         toast('欢迎回来');
