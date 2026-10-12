@@ -943,13 +943,105 @@ textarea{resize:vertical;min-height:72px;}
 
   /* ============ 发音 ============ */
   function detectLang(t){ return /[\u4e00-\u9fa5]/.test(t) ? 'zh-CN' : 'en-US'; }
-  function speak(text, lang){
-    if(!text || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
+  /* 系统语音列表（iOS/部分安卓要等 voiceschanged 事件才有，加载慢了会点不出声） */
+  var voiceList = [], voicesReady = false, voicesWarned = false;
+  function loadVoices(){
+    if(!window.speechSynthesis) return;
+    var vs = window.speechSynthesis.getVoices() || [];
+    if(vs.length){ voiceList = vs; voicesReady = true; }
+  }
+  loadVoices();
+  if(window.speechSynthesis){
+    try{
+      window.speechSynthesis.onvoiceschanged = function(){ loadVoices(); };
+      if(window.speechSynthesis.addEventListener) window.speechSynthesis.addEventListener('voiceschanged', loadVoices);
+    }catch(e){}
+  }
+  /* 挑一个匹配语言的系统语音，优先本地（离线可用） */
+  function pickVoice(lang){
+    var isZh = lang === 'zh-CN';
+    var keys = isZh ? ['zh-CN','zh_CN','zh-Hans','zh-HK','zh-TW','zh'] : ['en-US','en_US','en-GB','en_GB','en-AU','en_'];
+    var hit = [];
+    voiceList.forEach(function(v){
+      var tag = String(v.voiceURI || '') + ' ' + String(v.name || '') + ' ' + String(v.lang || '');
+      for(var i = 0; i < keys.length; i++){
+        if(tag.indexOf(keys[i]) >= 0){ hit.push(v); return; }
+      }
+    });
+    if(!hit.length) return null;
+    hit.sort(function(a, b){ return (a.localService ? 0 : 1) - (b.localService ? 0 : 1); });
+    return hit[0];
+  }
+  /* 系统自带发音（保底，离线也能用） */
+  function speakTts(text, lang){
+    if(!window.speechSynthesis) return;
     var u = new SpeechSynthesisUtterance(text);
     u.lang = lang || detectLang(text);
     u.rate = 0.95;
-    window.speechSynthesis.speak(u);
+    var v = pickVoice(u.lang);
+    if(v) u.voice = v;
+    else if(!voicesReady && !voicesWarned){ voicesWarned = true; setTimeout(function(){ voicesWarned = false; }, 4000); toast('这台设备的语音还没准备好，再点一次试试'); }
+    else if(!v && !voicesWarned){ voicesWarned = true; setTimeout(function(){ voicesWarned = false; }, 6000); toast('设备里没有' + (u.lang === 'zh-CN' ? '中文' : '英语') + '语音包，到系统设置里添加一个就能听'); }
+    u.onerror = function(e){
+      if(e && (e.error === 'canceled' || e.error === 'interrupted')) return; // 自己取消的不算失败
+      if(voicesWarned) return;
+      voicesWarned = true; setTimeout(function(){ voicesWarned = false; }, 6000);
+      toast('发音没播出来，可能是设备没有语音包');
+    };
+    try{ window.speechSynthesis.cancel(); }catch(e){}
+    setTimeout(function(){ try{ window.speechSynthesis.speak(u); }catch(e){} }, 60); // cancel 后立刻 speak 在部分浏览器会失败
+  }
+  /* 真人发音（免费词典 API，有缓存；拿不到就回退系统发音） */
+  var audioUrlCache = {};
+  function fetchAudioUrl(word, cb){
+    var w = String(word || '').trim().toLowerCase();
+    if(!w || !/^[a-z][a-z'\u2019-]*$/.test(w)){ cb(null); return; }
+    if(audioUrlCache.hasOwnProperty(w)){ cb(audioUrlCache[w]); return; }
+    var done = false;
+    var timer = setTimeout(function(){ if(!done){ done = true; audioUrlCache[w] = null; cb(null); } }, 1500);
+    fetch('https://api.dictionaryapi.dev/api/v2/entries/en/' + encodeURIComponent(w))
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .then(function(d){
+        if(done) return;
+        done = true; clearTimeout(timer);
+        var url = null;
+        (d || []).forEach(function(e){
+          (e.phonetics || []).forEach(function(p){ if(p.audio && !url) url = p.audio; });
+        });
+        if(url && url.indexOf('//') === 0) url = location.protocol + url;
+        audioUrlCache[w] = url;
+        cb(url);
+      })
+      .catch(function(){
+        if(done) return;
+        done = true; clearTimeout(timer);
+        audioUrlCache[w] = null;
+        cb(null);
+      });
+  }
+  /* 统一入口：优先真人发音，失败/没有就用系统发音 */
+  function speak(text, lang){
+    if(!text) return;
+    var t = String(text).trim();
+    if(!t) return;
+    var isEnWord = !/[\u4e00-\u9fa5]/.test(t) && /^[A-Za-z][A-Za-z'\u2019-]*$/.test(t);
+    if(isEnWord){
+      fetchAudioUrl(t, function(url){
+        if(url){
+          try{
+            var a = new Audio();
+            a.onerror = function(){ speakTts(t, lang); };
+            a.src = url;
+            var p = a.play();
+            if(p && p.catch) p.catch(function(){ speakTts(t, lang); });
+            return;
+          }catch(e){ /* 走到下面用系统发音 */ }
+        }
+        speakTts(t, lang);
+      });
+      return;
+    }
+    speakTts(t, lang);
   }
 
   /* ============ 复习算法 ============ */
@@ -1119,6 +1211,7 @@ textarea{resize:vertical;min-height:72px;}
       exEl.style.display = ex ? '' : 'none';
     }
     updateProgress();
+    if(c.word) fetchAudioUrl(c.word, function(){}); // 卡片一显示就提前准备真人发音，点「发音」时立刻出声
   }
   function updateProgress(){
     var done = curIdx;
@@ -1628,6 +1721,7 @@ textarea{resize:vertical;min-height:72px;}
     popWord = el.getAttribute('data-w') || '';
     popEl = el;
     $('#wpWord').textContent = popWord;
+    if(popWord) fetchAudioUrl(popWord, function(){}); // 提前准备发音
     var pop = $('#wordPop');
     pop.classList.add('show');
     var rect = el.getBoundingClientRect();
