@@ -1639,6 +1639,18 @@ textarea{resize:vertical;min-height:72px;}
     pop.style.top = top + 'px';
   }
   function hideSentPop(){ $('#sentPop').classList.remove('show'); popSentence = ''; }
+  var selChangeTimer = null;
+  document.addEventListener('selectionchange', function(){
+    clearTimeout(selChangeTimer);
+    selChangeTimer = setTimeout(function(){
+      if(!$('#readPage').classList.contains('show')) return; // 只在阅读页处理
+      var sel = window.getSelection();
+      if(!sel || sel.isCollapsed || !sel.toString().trim()) return;
+      var body = $('#readBody');
+      if(!body.contains(sel.anchorNode)) return;
+      showSentPop();
+    }, 350);
+  });
   function onReadSelect(){
     setTimeout(function(){
       var sel = window.getSelection();
@@ -1682,6 +1694,7 @@ textarea{resize:vertical;min-height:72px;}
     state.patterns.push({ id: uid(), sentence: popSentence, note: '', from: (art && art.title) || '', createdAt: now(), updated: now() });
     save(); schedulePush();
     hideSentPop();
+    try{ window.getSelection().removeAllRanges(); }catch(e){}
     renderPatterns();
     $('#patternSec').style.display = '';
     toast('已存入句型库');
