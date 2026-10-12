@@ -906,8 +906,11 @@ textarea{resize:vertical;min-height:72px;}
     clearTimeout(pushTimer);
     pushTimer = setTimeout(function(){ doSync().catch(function(){}); }, 900);
   }
+  var syncing = false, syncAgain = false;
   function doSync(){
     if(!token) return Promise.reject(new Error('no token'));
+    if(syncing){ syncAgain = true; return Promise.resolve(); }
+    syncing = true;
     return fetchCloud().then(function(cloud){
       var merged = mergeCards(state.cards, cloud.cards);
       state.cards = merged;
@@ -917,7 +920,18 @@ textarea{resize:vertical;min-height:72px;}
       save();
       return pushCloud(merged);
     }).then(function(){
-      renderAll(); startSession();
+      renderAll();
+      if($('#view-review').classList.contains('active') && session.length && curIdx < session.length){
+        refreshStats(); // 复习进行中，只更新数字，不重置进度
+      } else {
+        startSession();
+      }
+    }).then(function(){
+      syncing = false;
+      if(syncAgain){ syncAgain = false; doSync().catch(function(){}); }
+    }, function(e){
+      syncing = false;
+      throw e;
     });
   }
   function setSyncState(kind, text){
@@ -943,7 +957,7 @@ textarea{resize:vertical;min-height:72px;}
     var t = now();
     c.reps = (c.reps || 0) + 1;
     if(r === 'good'){ c.level = Math.min((c.level||0)+1, 5); c.due = t + DAYS[c.level]*DAY; }
-    else if(r === 'fuzzy'){ var lv = Math.max(1, c.level||0); c.due = t + Math.max(1, Math.ceil(DAYS[lv]/2))*DAY; }
+    else if(r === 'fuzzy'){ var lv = Math.min(5, Math.max(1, c.level||0)); c.due = t + Math.max(1, Math.ceil(DAYS[lv]/2))*DAY; }
     else { c.level = 0; c.due = t; }
     c.updated = t;
   }
@@ -1435,7 +1449,11 @@ textarea{resize:vertical;min-height:72px;}
     String(text || '').split(/\r?\n/).forEach(function(line){
       var t = line.trim();
       if(!t) return;
-      var safe = escHtml(t).replace(/([A-Za-z][A-Za-z'\u2019-]*)/g, '<span class="rw" data-w="$1">$1</span>');
+      // 先转义，再避开 &xxx; 实体包单词，防止含 & < > 的文章显示成乱码、出现假单词
+      var safe = escHtml(t).split(/(&[a-zA-Z]+;|&#\d+;)/g).map(function(part, i){
+        if(i % 2 === 1) return part; // HTML 实体原样保留
+        return part.replace(/([A-Za-z][A-Za-z'’-]*)/g, '<span class="rw" data-w="$1">$1</span>');
+      }).join('');
       html += '<p>' + safe + '</p>';
     });
     return html || '<p style="color:var(--muted);">（这篇文章没有文字）</p>';
@@ -1617,6 +1635,7 @@ textarea{resize:vertical;min-height:72px;}
     var left = Math.min(Math.max(8, rect.left + rect.width / 2 - pw / 2), window.innerWidth - pw - 8);
     var top = rect.top - ph - 8;
     if(top < 70) top = rect.bottom + 8;
+    if(top + ph > window.innerHeight - 8) top = Math.max(70, window.innerHeight - ph - 8);
     pop.style.left = left + 'px';
     pop.style.top = top + 'px';
   }
@@ -1628,6 +1647,7 @@ textarea{resize:vertical;min-height:72px;}
     if(txt.length > 300) txt = txt.slice(0, 300) + '…';
     popSentence = txt;
     $('#spSentence').textContent = txt;
+    hideWordPop();
     var pop = $('#sentPop');
     pop.classList.add('show');
     var rect = sel.getRangeAt(0).getBoundingClientRect();
@@ -1976,7 +1996,6 @@ textarea{resize:vertical;min-height:72px;}
         if(!arr.length){ toast('文件里没有单词'); return; }
         arr.forEach(function(c){
           if(!c.id) c.id = uid();
-          c._d = false;
           c.updated = c.updated || now();
         });
         if(d && !Array.isArray(d) && d.settings){
@@ -1999,9 +2018,10 @@ textarea{resize:vertical;min-height:72px;}
     if(!n){ toast('已经没有单词了'); return; }
     exportBackup();
     if(!confirm('已经自动下载一份备份到你的「下载」文件夹。确定要清空全部 ' + n + ' 个单词吗？云端也会同时清空，此操作无法撤销。')) return;
-    state.cards = [];
+    var t = now();
+    activeCards().forEach(function(c){ c._d = true; c.updated = t; });
     save();
-    if(token){ pushCloud([]).catch(function(){}); }
+    if(token){ pushCloud(state.cards).catch(function(){}); }
     refreshStats(); renderList(); renderRecent(); startSession();
     toast('已清空');
   }
@@ -2195,9 +2215,9 @@ textarea{resize:vertical;min-height:72px;}
     });
 
     $('#searchInput').addEventListener('input', function(){ searchTerm = this.value.trim(); renderList(); });
-    $all('.filter-row .chip').forEach(function(ch){
+    $all('.filter-row:not(.tag-filter-row) .chip').forEach(function(ch){
       ch.addEventListener('click', function(){
-        $all('.filter-row .chip').forEach(function(x){ x.classList.remove('active'); });
+        $all('.filter-row:not(.tag-filter-row) .chip').forEach(function(x){ x.classList.remove('active'); });
         ch.classList.add('active');
         filter = ch.getAttribute('data-filter');
         renderList();
@@ -2267,6 +2287,7 @@ textarea{resize:vertical;min-height:72px;}
     $('#readBack').addEventListener('click', closeRead);
     $('#readBody').addEventListener('scroll', function(){
       hideWordPop();
+      hideSentPop();
       if(!readingId) return;
       clearTimeout(scrollSaveTimer);
       scrollSaveTimer = setTimeout(function(){
